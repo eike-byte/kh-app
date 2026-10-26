@@ -360,7 +360,7 @@ async function farewellZip(kid){
 }
 
 /* ---------- UI state & rendering ---------- */
-const ui={tab:"heute",day:today(),obsKid:"",obsAreas:[],obsText:"",obsDate:today(),filterKid:"",editKid:null,gsKid:"",gsRange:"6",week:monday(today()),tpl:"ausflug",confirm:null,album:null,photo:null,usage:null};
+const ui={tab:"heute",day:today(),obsKid:"",obsAreas:[],obsText:"",obsDate:today(),filterKid:"",editKid:null,gsKid:"",gsRange:"6",week:monday(today()),tpl:"ausflug",confirm:null,album:null,photo:null,usage:null,pendingImport:null};
 try{const t=LS.get("kh:tab");if(t&&TABS.some(x=>x[0]===t))ui.tab=t}catch{}
 let pendingRender=false;
 function safeRender(){const a=document.activeElement;if(a&&$("#main").contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){pendingRender=true;return}render()}
@@ -472,8 +472,7 @@ kinder(){
   return `<div class="row between"><h2>Kinder (${ks.length})</h2><button class="btn" data-act="newKid">Kind hinzufügen</button></div>
   ${ks.length?`<ul class="list">${ks.map(k=>`<li class="kid-row"><div class="row between"><div><div class="kid-name">${esc(k.name)}</div><div class="kid-meta">${[age(k.geb,today()),k.abholer?"Abholung: "+esc(k.abholer):""].filter(Boolean).join(" · ")}</div>${k.info?`<div class="kid-info">${esc(k.info)}</div>`:""}</div><div class="row"><button class="btn-sm" data-act="album" data-kid="${k.id}">Fotos${fotos(k.id).length?" ("+fotos(k.id).length+")":""}</button><button class="btn-sm" data-act="editKid" data-kid="${k.id}">Bearbeiten</button></div></div></li>`).join("")}</ul>`
   :`<div class="card empty-state"><p>Noch keine Kinder. Lege sie einzeln an oder probiere die App erst mit drei Beispielkindern aus, die du später wieder löschst.</p><button class="btn ghost" data-act="demo">Beispielkinder anlegen</button></div>`}
-  <div class="card"><h3>Sicherung</h3><p class="small muted" style="margin:0">Die Sicherung ist verschlüsselt und lässt sich nur mit deinem Passwort wieder einlesen.</p>
-  <div class="row">${DL?`<button class="btn ghost" data-act="export">Sicherung speichern</button>`:""}<label class="btn ghost" style="display:inline-block">Sicherung einlesen<input type="file" id="import" accept="application/json,.json" data-chg="import" hidden></label></div></div>`;
+  ${backupCard()}`;
 }
 };
 function album(k){
@@ -489,6 +488,54 @@ function album(k){
     <div class="card"><h3>Abschied</h3><p class="small muted" style="margin:0">Lädt alle Fotos von ${esc(k.name)} mit Bildunterschriften und alle Beobachtungen als ZIP-Datei herunter, zum Beispiel für ein Abschiedsbuch.</p>
     ${DL?`<button class="btn ghost" data-act="farewell">Abschiedsmappe herunterladen</button>`:""}</div>`
   :`<div class="card empty-state"><p>Noch keine Fotos von ${esc(k.name)}. Über das ganze Jahr gesammelt, ergeben sie am Ende die Abschiedsmappe.</p></div>`}`;
+}
+function backupCard(){
+  const last=LS.get("kh:lastBackup"),days=last?daysBetween(last,today()):null;
+  const state=last?`Letzte Sicherung auf diesem Gerät: ${esc(fmtD(last,{day:"2-digit",month:"2-digit",year:"numeric"}))}${days>0?` (vor ${days} ${days===1?"Tag":"Tagen"})`:" (heute)"}`:"Auf diesem Gerät wurde noch keine Sicherung gespeichert.";
+  const pi=ui.pendingImport;
+  return `<div class="card"><h3>Sicherung</h3>
+  <p class="small muted" style="margin:0">Speichert alle Einträge und Fotos in einer ZIP-Datei, die du z. B. in iCloud Drive ablegen kannst. Sie bleibt verschlüsselt und lässt sich nur mit deinem Passwort wieder einlesen. Mit vielen Fotos geht das am Laptop am besten.</p>
+  <p class="small" style="margin:0;color:${days===null||days>30?"var(--warn)":"var(--muted)"}">${state}</p>
+  <div class="small muted" id="bk-state" aria-live="polite"></div>
+  ${pi?`<div class="note"><b>Sicherung vom ${esc(fmtD(pi.created,{day:"2-digit",month:"2-digit",year:"numeric"}))} einlesen?</b> ${Object.keys(pi.docs).length} Bereiche und ${pi.blobCount} Fotodateien. Einträge auf diesem Gerät werden durch den Stand der Sicherung ersetzt.<div class="row" style="margin-top:8px"><button class="btn danger" data-act="doImport">Ja, einlesen</button><button class="btn ghost" data-act="cancelImport">Abbrechen</button></div></div>`:""}
+  <div class="row">${DL?`<button class="btn ghost" data-act="export">Sicherung speichern</button>`:""}<label class="btn ghost" style="display:inline-block">Sicherung einlesen<input type="file" id="import" accept=".zip,.json,application/zip,application/json" data-chg="import" hidden></label></div></div>`;
+}
+async function makeBackup(){
+  const st=()=>$("#bk-state");
+  if(!window.JSZip){toast("Die Sicherung ist gerade nicht verfügbar");return}
+  for(const n of [...dirty])await flush(n);
+  const zip=new JSZip(),out={app:"kita-helfer",v:2,created:today(),meta:META,docs:{}};
+  for(const n in DOCS)out.docs[n]=await encryptObj(DOCS[n]);
+  const ids=[];for(const n in DOCS)if(n.startsWith("fotos-"))for(const p of DOCS[n].items||[])ids.push(p.asset,p.thumb);
+  let missing=0;
+  for(let i=0;i<ids.length;i++){if(st())st().textContent=`Packe Foto-Datei ${i+1} von ${ids.length} …`;
+    try{zip.file("fotos/"+ids[i]+".json",await window.platform.blobText(ids[i]))}catch{missing++}}
+  zip.file("sicherung.json",JSON.stringify(out));
+  zip.file("LIESMICH.txt","Kita-Helfer-Sicherung vom "+today()+".\nAlle Inhalte sind verschlüsselt. Einlesen in der App unter Kinder → Sicherung einlesen, mit demselben Passwort.\n");
+  if(st())st().textContent="Erstelle ZIP-Datei …";
+  const blob=await zip.generateAsync({type:"blob"});if(st())st().textContent="";
+  try{await DL.save({filename:`kita-helfer-sicherung-${today()}.zip`,data:blob});LS.set("kh:lastBackup",today());
+    toast(missing?`Sicherung gespeichert, ${missing} Foto-Dateien fehlten`:"Sicherung gespeichert");render()}
+  catch(e){if(!e||e.code!=="declined")toast("Speichern hat nicht geklappt")}
+}
+async function readBackup(f){
+  let j,zip=null;
+  if(/\.zip$/i.test(f.name)||f.type==="application/zip"){zip=await JSZip.loadAsync(f);const e=zip.file("sicherung.json");if(!e)throw new Error("format");j=JSON.parse(await e.async("string"))}
+  else j=JSON.parse(await f.text());
+  if(j.app!=="kita-helfer"||!j.meta)throw new Error("format");
+  if(j.meta.salt!==META.salt)throw new Error("pw");
+  const blobCount=zip?zip.file(/^fotos\/.+\.json$/).length:0;
+  return {created:j.created||today(),docs:j.docs,zip,blobCount};
+}
+async function restoreBackup(b){
+  const st=$("#bk-state");
+  try{
+    if(b.zip){const files=b.zip.file(/^fotos\/.+\.json$/);
+      for(let i=0;i<files.length;i++){if(st)st.textContent=`Lese Foto-Datei ${i+1} von ${files.length} ein …`;
+        await window.platform.restoreBlob(files[i].name.slice(6,-5),await files[i].async("string"))}}
+    for(const n in b.docs){DOCS[n]=await decryptObj(b.docs[n]);touch(n)}
+    toast("Sicherung eingelesen");
+  }catch(e){console.warn(e);toast("Einlesen hat nicht geklappt")}
 }
 function fillTpl(t,vals){return t.replace(/\{\{([^}]+)\}\}/g,(m,k)=>vals[k]?vals[k]:"["+k+"]")}
 
@@ -531,8 +578,9 @@ const ACT={
     let t=`Entwicklungsgespräch ${k.name}${k.geb?" ("+age(k.geb,today())+")":""}\n\n`;
     AREAS.forEach(([a,n])=>{const l=obs.filter(o=>(o.areas||[]).includes(a));t+=`${n}\n${l.length?l.map(o=>`- ${fmtD(o.date,{day:"2-digit",month:"2-digit",year:"2-digit"})}: ${o.text}`).join("\n"):"- noch keine Beobachtung"}\n\n`});
     t+=`Stärken und Freude\n${gs.staerken||"–"}\n\nNächste Entwicklungsschritte\n${gs.ziele||"–"}\n\nAbsprachen mit den Eltern\n${gs.absprachen||"–"}`;copy(t)},
-  export:async()=>{const out={app:"kita-helfer",v:1,meta:META,docs:{}};for(const n in DOCS){const b=await encryptObj(DOCS[n]);out.docs[n]=b}
-    try{await DL.save({filename:`kita-helfer-sicherung-${today()}.json`,data:JSON.stringify(out)});toast("Sicherung gespeichert")}catch(e){if(e&&e.code!=="declined")toast("Speichern hat nicht geklappt")}}
+  export:t=>{t.disabled=true;makeBackup().finally(()=>{t.disabled=false})},
+  doImport:t=>{t.disabled=true;restoreBackup(ui.pendingImport).finally(()=>{ui.pendingImport=null;render()})},
+  cancelImport:()=>{ui.pendingImport=null;render()}
 };
 const BIND={
   obsText:t=>ui.obsText=t.value,
@@ -552,10 +600,8 @@ const CHG={
   tpl:t=>{ui.tpl=t.value;render()},
   tplText:()=>render(),
   upload:t=>{const files=[...t.files];if(files.length&&ui.album)addPhotos(ui.album,files)},
-  import:async t=>{const f=t.files[0];if(!f)return;try{const j=JSON.parse(await f.text());
-    if(j.app!=="kita-helfer"||!j.meta||j.meta.salt!==META.salt)throw new Error("andere Gruppe");
-    for(const n in j.docs){DOCS[n]=await decryptObj(j.docs[n]);touch(n)}toast("Sicherung eingelesen");render()}
-    catch{toast("Diese Datei passt nicht zu deinem Passwort")}}
+  import:async t=>{const f=t.files[0];t.value="";if(!f)return;
+    try{const b=await readBackup(f);ui.pendingImport=b;render()}catch(e){toast(e&&e.message==="pw"?"Diese Sicherung gehört zu einem anderen Passwort":"Diese Datei ist keine Kita-Helfer-Sicherung")}}
 };
 const main=$("#main");
 main.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(t&&ACT[t.dataset.act]){e.preventDefault();ACT[t.dataset.act](t)}});

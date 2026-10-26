@@ -84,6 +84,7 @@
     async delete(id){await del("blobs",id);await del("outbox","blob:"+id);if(R())await queue("blobdel:"+id,{k:"blobdel",id});return {deleted:true}},
     async list(){let bytes=0,maxBytes=0;try{const e=await navigator.storage.estimate();bytes=e.usage||0;maxBytes=e.quota||0}catch{}return {assets:[],usage:{bytes,maxBytes}}}
   };
+  async function restoreBlob(id,text){if(!/^[0-9a-f]{32}$/.test(id))return;await put("blobs",id,text);await queue("blob:"+id,{k:"blob",id})}
   async function blobText(id){let v=await get("blobs",id);if(v==null&&R()){v=await R().getBlob(id);if(v!=null)await put("blobs",id,v)}if(v==null)throw new Error("fehlt");return v}
 
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{}
@@ -91,6 +92,7 @@
   window.platform={
     use:async n=>caps[n]||null,
     blobText,
+    restoreBlob,
     hasRemote:()=>!!R(),
     status:()=>status,
     onStatus:f=>statusListeners.add(f),
