@@ -56,8 +56,31 @@ const THEMES={
 };
 const NAMES={bagger:"Bagger",kipper:"Kipplaster",pylone:"Pylone",feuerwehr:"Feuerwehrauto",helm:"Feuerwehrhelm",flamme:"Flamme",dino:"Langhals-Dino",trex:"T-Rex",ei:"Dino-Ei",vulkan:"Vulkan",rakete:"Rakete",planet:"Planet",stern:"Stern",mond:"Mond",fisch:"Fisch",wal:"Wal",seestern:"Seestern",katze:"Katze",hase:"Hase",vogel:"Vogel",blume:"Blume",schmetterling:"Schmetterling",sonne:"Sonne",kaefer:"Marienkäfer",ball:"Fußball",tor:"Tor",pokal:"Pokal",blatt:"Blatt",pilz:"Pilz",eichel:"Eichel",krone:"Krone",schloss:"Schloss",zauberstab:"Zauberstab"};
 const themeOf=m=>Object.values(THEMES).find(t=>t.motifs.includes(m))||THEMES.bagger;
-window.MOTIVE={THEMES,NAMES,
-  svg(key,{outline=false,size=100,theme}={}){const t=theme?THEMES[theme]:themeOf(key);return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">${draw(key,t,outline)}</svg>`},
-  inner(key,outline){return draw(key,themeOf(key),outline)}
+
+/* Eigene Motive (von der KI gezeichnet). Das SVG wird Element für Element neu aufgebaut,
+   nur einfache Formen und unbedenkliche Attribute bleiben übrig. */
+const CUSTOM={};
+const TAGS=new Set(["path","circle","ellipse","rect","polygon","polyline","line","g"]);
+const ATTRS=new Set(["d","cx","cy","r","rx","ry","x","y","width","height","x1","x2","y1","y2","points","fill","stroke","stroke-width","stroke-linejoin","stroke-linecap","stroke-dasharray","opacity","fill-opacity","transform","fill-rule"]);
+const SAFE=/^[#a-zA-Z0-9.,\s\-()%]*$/;
+function clean(src){
+  let doc;try{doc=new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${String(src||"")}</svg>`,"image/svg+xml")}catch{return ""}
+  const root=doc.documentElement;if(!root||root.nodeName!=="svg"||doc.getElementsByTagName("parsererror").length)return "";
+  let n=0;
+  const walk=el=>[...el.children].map(c=>{const tag=c.localName;if(!TAGS.has(tag)||++n>200)return "";
+    const at=[...c.attributes].filter(a=>ATTRS.has(a.name)&&SAFE.test(a.value)&&!/url\s*\(/i.test(a.value)&&a.value.length<4000).map(a=>`${a.name}="${a.value}"`).join(" ");
+    return tag==="g"?`<g ${at}>${walk(c)}</g>`:`<${tag} ${at}/>`}).join("");
+  return walk(root);
+}
+const outlineOf=svg=>svg.replace(/fill="(?!none")[^"]*"/g,'fill="#FFFFFF"').replace(/(fill|stroke)-opacity="[^"]*"/g,"").replace(/opacity="[^"]*"/g,"");
+const drawAny=(key,col,outline)=>CUSTOM[key]?(outline?CUSTOM[key].outline:CUSTOM[key].svg):draw(key,col,outline);
+
+window.MOTIVE={THEMES,NAMES,clean,
+  add(key,name,svg){const c=clean(svg);if(!c)return false;CUSTOM[key]={name,svg:c,outline:outlineOf(c)};return true},
+  has:key=>!!(CUSTOM[key]||NAMES[key]),
+  name:key=>CUSTOM[key]?CUSTOM[key].name:NAMES[key]||key,
+  custom:()=>Object.entries(CUSTOM).map(([k,v])=>[k,v.name]),
+  svg(key,{outline=false,size=100,theme}={}){const t=theme?THEMES[theme]:themeOf(key);return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true">${drawAny(key,t,outline)}</svg>`},
+  inner(key,outline){return drawAny(key,themeOf(key),outline)}
 };
 })();

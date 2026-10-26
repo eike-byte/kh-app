@@ -1,5 +1,5 @@
 /* Offline cache for the app shell. Bump VERSION on every release so phones pick up the new files. */
-const VERSION="kh-4";
+const VERSION="kh-5";
 const SHELL=["./","index.html","platform.js","config.js","remote.js","jszip.min.js","motive.js","gestalten.js","manifest.webmanifest","icon.svg","icon-180.png","icon-192.png","icon-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

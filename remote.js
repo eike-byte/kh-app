@@ -75,7 +75,14 @@
       if(/disabled|not allowed/i.test(JSON.stringify(r.j)))return "closed";
       return "error";
     },
-    logout(){S=null;save();window.KH_REMOTE=null}
+    logout(){S=null;save();window.KH_REMOTE=null},
+    /* KI-Gestaltung über die Supabase-Funktion kh-ki; gibt {ergebnis} oder {fehler} zurück */
+    async ki(payload){
+      if(!S)return {fehler:"auth"};
+      try{const r=await api("POST","/functions/v1/kh-ki",JSON.stringify(payload),json);return await r.json()}
+      catch(e){if(e.code==="offline")return {fehler:"offline"};if(e.status===404)return {fehler:"fehlt"};
+        let j={};try{j=JSON.parse(e.txt||"{}")}catch{}return {fehler:j.error||"fehler"}}
+    }
   };
   if(S)window.KH_REMOTE=remote;
 })();

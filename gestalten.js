@@ -21,8 +21,11 @@ const BLOCKS={
   ausmalen:{name:"Ausmalbild",d:()=>({motif:"bagger",text:"Male das Bild bunt aus."})}
 };
 const SYMBOLS={kreis:"Kreis",stern:"Stern",herz:"Herz",blume:"Blume",apfel:"Apfel",fisch:"Fisch"};
-const MOTIF_OPTS=Object.fromEntries(Object.entries(MOTIVE.NAMES));
-const SYMBOL_OPTS=Object.assign({},SYMBOLS,Object.fromEntries(Object.entries(MOTIVE.NAMES).filter(([k])=>!(k in SYMBOLS)).map(([k,v])=>["m:"+k,v])));
+const allMotifs=()=>Object.entries(MOTIVE.NAMES).concat(MOTIVE.custom());
+const motifOpts=()=>Object.fromEntries(allMotifs());
+const symbolOpts=()=>Object.assign({},SYMBOLS,Object.fromEntries(allMotifs().filter(([k])=>!(k in SYMBOLS)).map(([k,v])=>["m:"+k,v])));
+/* von der KI gezeichnete Motive liegen verschlüsselt im Dokument "gestalten" und werden hier angemeldet */
+function syncMotive(){(gDoc().motive||[]).forEach(m=>{if(!MOTIVE.has(m.key))MOTIVE.add(m.key,m.name,m.svg)})}
 const THEME_OPTS=Object.assign({"":"Kein Thema"},Object.fromEntries(Object.entries(MOTIVE.THEMES).map(([k,t])=>[k,t.name])));
 const MUSTER={welle:"Wellen",zacke:"Zacken",bogen:"Girlanden",schlaufe:"Schlaufen",treppe:"Treppen"};
 
@@ -76,18 +79,19 @@ function blockHTML(b){
 }
 
 /* ---------- page renderers (fixed A4 at 794×1123 px) ---------- */
+function pageMotifs(s){const own=(s.motifs||[]).filter(MOTIVE.has);if(own.length)return own;const T=MOTIVE.THEMES[s.theme];return T?T.motifs:[]}
 function decoHTML(s,outline){
-  const T=MOTIVE.THEMES[s.theme];if(!T)return "";const R=rng(s.seed||1),ms=T.motifs.slice().sort(()=>R()-.5),pick=i=>ms[i%ms.length];
+  const all=pageMotifs(s);if(!all.length)return "";const R=rng(s.seed||1),ms=all.slice().sort(()=>R()-.5),pick=i=>ms[i%ms.length];
   const dens=outline?1:(+s.density||2),spots=[["left:34px;top:30px",96,-8],["right:34px;top:30px",96,8],["left:30px;bottom:26px",84,-6],["right:30px;bottom:26px",84,6]];
   const n=outline?(s.type==="ab"?1:2):dens>=2?4:2;let h="";
   const use=outline&&s.type==="ab"?[spots[1]]:spots.slice(0,n);
   use.forEach(([pos,size,rot],i)=>{h+=`<div class="deco" style="${pos};width:${size}px;height:${size}px;transform:rotate(${(rot+(R()*8-4)).toFixed(1)}deg)">${MOTIVE.svg(pick(i),{size,outline})}</div>`});
   return h;
 }
-function motifRow(s){const T=MOTIVE.THEMES[s.theme];if(!T||(+s.density||2)<3)return "";const R=rng((s.seed||1)+7);return `<div class="pf-row">${Array.from({length:9},(_,i)=>`<span style="transform:rotate(${(R()*16-8).toFixed(0)}deg)">${MOTIVE.svg(T.motifs[i%T.motifs.length],{size:46})}</span>`).join("")}</div>`}
+function motifRow(s){const ms=pageMotifs(s);if(!ms.length||(+s.density||2)<3)return "";const R=rng((s.seed||1)+7);return `<div class="pf-row">${Array.from({length:9},(_,i)=>`<span style="transform:rotate(${(R()*16-8).toFixed(0)}deg)">${MOTIVE.svg(ms[i%ms.length],{size:46})}</span>`).join("")}</div>`}
 function photoSlot(s,i,cls=""){const a=(s.photos||[])[i];return `<div class="pf-photo ${cls}">${a?`<img data-asset="${a}" alt="">`:`<span>Foto ${i+1}</span>`}</div>`}
 function pageHTML(s){
-  if(s.type==="ab")return `<div class="a4 ws${s.theme?" themed":""}">${decoHTML(s,true)}${(s.blocks||[]).map(b=>`<div class="ws-block">${blockHTML(b)}</div>`).join("")}</div>`;
+  if(s.type==="ab")return `<div class="a4 ws${s.theme||pageMotifs(s).length?" themed":""}">${decoHTML(s,true)}${(s.blocks||[]).map(b=>`<div class="ws-block">${blockHTML(b)}</div>`).join("")}</div>`;
   const k=kidById(s.kid),L=s.layout,title=esc(fillVars(s.title,s.kid,s.date)),text=fillVars(s.text,s.kid,s.date);
   const foot=`<div class="pf-foot"><span>${esc(k?k.name.replace(/^Beispiel /,""):"")}</span><span>${esc(fmtD(s.date||today(),{day:"numeric",month:"long",year:"numeric"}))}</span></div>`;
   let body="";
@@ -96,7 +100,69 @@ function pageHTML(s){
   else if(L==="foto")body=`<div class="pf-grid four">${[0,1,2,3].map(i=>`<figure>${photoSlot(s,i)}<figcaption>${esc((s.caps||[])[i]||"")}</figcaption></figure>`).join("")}</div>${text?`<div class="pf-letter">${esc(text)}</div>`:""}`;
   else if(L==="ich")body=`<div class="pf-ich">${photoSlot(s,0,"round")}<dl>${text.split("\n").filter(x=>x.trim()).map(x=>{const i=x.indexOf(":");return i>0?`<div><dt>${esc(x.slice(0,i+1))}</dt><dd>${esc(x.slice(i+1).trim())||"&nbsp;"}</dd></div>`:`<div><dd>${esc(x)}</dd></div>`}).join("")}</dl></div>`;
   const T=MOTIVE.THEMES[s.theme],vars=T?` style="--paper-accent:${T.accent};--paper-warm:${T.warm}"`:"";
-  return `<div class="a4 pf pf-${L}${T?" themed":""}"${vars}>${decoHTML(s,false)}<h1 class="pf-title">${title}</h1>${motifRow(s)}${body}${foot}</div>`;
+  return `<div class="a4 pf pf-${L}${T||pageMotifs(s).length?" themed":""}"${vars}>${decoHTML(s,false)}<h1 class="pf-title">${title}</h1>${motifRow(s)}${body}${foot}</div>`;
+}
+
+/* ---------- KI-Gestaltung ---------- */
+const kiOn=()=>!!(window.KH_SYNC&&KH_SYNC.ki);
+const KI_FEHLER={auth:"Bitte melde dich einmal ab und wieder an.",offline:"Keine Internetverbindung.",fehlt:"Die KI ist noch nicht eingerichtet (die Supabase-Funktion kh-ki fehlt).",
+  kein_schluessel:"Der Anthropic-Schlüssel fehlt in Supabase.",schluessel_falsch:"Der Anthropic-Schlüssel stimmt nicht.",guthaben:"Das KI-Guthaben ist aufgebraucht.",
+  zu_viele:"Gerade zu viele Anfragen. Bitte gleich noch einmal.",abgelehnt:"Diesen Wunsch wollte die KI nicht umsetzen. Formuliere ihn bitte etwas anders.",zu_lang:"Das Ergebnis wurde zu lang. Bitte den Wunsch etwas kleiner fassen."};
+function kiBox(s){
+  if(!kiOn())return "";
+  const busy=ui.gKiBusy,m=ui.gKiMsg&&ui.gKiMsg.id===(s?s.id:"neu")?ui.gKiMsg:null;
+  const ph=!s?"Zum Beispiel: Zählen bis 5 mit Dinos, dazu ein Dino zum Ausmalen":s.type==="pf"?"Zum Beispiel: Mehr Bagger, er liebt Bagger. Oder: Schreib den Text fröhlicher.":"Zum Beispiel: Mach daraus ein Blatt zum Thema Traktoren, etwas leichter.";
+  return `<div class="ki-box"><label class="f"><span>✨ Mit KI gestalten</span><textarea id="${s?"g-wish":"g-wishnew"}" data-bind="gWish" placeholder="${esc(ph)}" ${busy?"disabled":""}>${esc(ui.gWish||"")}</textarea></label>
+    <div class="row"><button class="btn" data-act="${s?"gKi":"gKiNew"}" ${busy?"disabled":""}>${busy?"Ich gestalte …":s?"Umsetzen":"Blatt erstellen"}</button>${m&&!m.err&&ui.gUndo&&s&&ui.gUndo.id===s.id?`<button class="btn ghost" data-act="gKiUndo">Rückgängig</button>`:""}</div>
+    ${busy?`<p class="small muted" style="margin:0">Das dauert meist 20 bis 60 Sekunden.</p>`:""}
+    ${m?`<p class="small" style="margin:0;color:${m.err?"var(--bad)":"var(--ok)"}">${esc(m.text)}</p>`:""}
+    <p class="small muted" style="margin:0">Fotos und Namen werden nicht übertragen. Bitte schreib keine Nachnamen oder Gesundheitsdaten in den Wunsch.</p></div>`;
+}
+function kidAnon(kid){const k=kidById(kid);if(!k)return t=>t;const full=k.name.replace(/^Beispiel /,"").trim(),parts=full.split(/\s+/).filter(x=>x.length>1);
+  const re=new RegExp([full,...parts].sort((a,b)=>b.length-a.length).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|"),"gi");return t=>String(t||"").replace(re,"{Name}")}
+function kiPayload(s,wish){
+  const anon=kidAnon(s.kid),k=kidById(s.kid);
+  const bib={motive:Object.fromEntries(allMotifs()),themen:Object.fromEntries(Object.entries(MOTIVE.THEMES).map(([key,t])=>[key,{name:t.name,motive:t.motifs}]))};
+  const deko=(s.motifs||[]).filter(MOTIVE.has);
+  const aktuell=s.type==="ab"
+    ?{titel:anon(s.title),thema:s.theme||"",deko_motive:deko,bausteine:(s.blocks||[]).map(b=>{const p=b.p||{};return {typ:b.t,text:anon(p.text||""),option:String(p.symbol||p.motif||p.size||p.muster||p.hoehe||"").replace(/^m:/,""),reihen:+p.rows||0,hoechstens:+p.max||0}})}
+    :{titel:anon(s.title),text:anon(s.text),bildunterschriften:s.layout==="foto"?[0,1,2,3].map(i=>anon((s.caps||[])[i]||"")):[],thema:s.theme||"",dichte:+s.density||2,deko_motive:deko};
+  return {type:s.type,layout:s.layout||"",alter:k&&k.geb?age(k.geb,s.date||today()):"",wunsch:anon(wish),bibliothek:bib,aktuell};
+}
+const clamp=(v,a,b,d)=>{v=Math.round(+v);return isFinite(v)&&v>=a?Math.min(b,v):d};
+function kiApply(s,r){
+  const neu=[];(r.neue_motive||[]).slice(0,3).forEach((m,i)=>{const key="ki"+uid().replace(/[^a-z0-9]/gi,"").slice(0,10)+i,name=String(m.name||"Motiv").slice(0,40);
+    if(MOTIVE.add(key,name,m.svg)){const G=gDoc();G.motive=G.motive||[];G.motive.push({key,name,svg:MOTIVE.clean(m.svg),t:Date.now()});neu[i]=key}});
+  const ref=x=>{x=String(x||"").replace(/^m:/,"");const n=/^neu:(\d+)$/.exec(x);if(n)return neu[+n[1]]||null;return MOTIVE.has(x)?x:null};
+  const theme=r.thema in MOTIVE.THEMES?r.thema:"";const T=MOTIVE.THEMES[theme];
+  s.title=String(r.titel||s.title||"");s.theme=theme;s.motifs=(r.deko_motive||[]).map(ref).filter(Boolean).slice(0,4);s.seed=Math.floor(Math.random()*1e6);
+  if(s.type==="pf"){s.text=String(r.text??s.text);s.density=clamp(r.dichte,1,3,2);if(s.layout==="foto")s.caps=[0,1,2,3].map(i=>String((r.bildunterschriften||[])[i]||""))}
+  else{
+    const fb=s.motifs[0]||(T&&T.motifs[0])||"bagger";
+    const blocks=(r.bausteine||[]).filter(b=>BLOCKS[b.typ]).slice(0,14).map(b=>{const t=b.typ,o=String(b.option||""),text=String(b.text||"");
+      if(t==="titel"||t==="anleitung")return {t,p:{text}};
+      if(t==="zaehlen"){const m=o in SYMBOLS?o:ref(o);return {t,p:{symbol:o in SYMBOLS?o:m?"m:"+m:"m:"+fb,rows:clamp(b.reihen,1,8,4),max:clamp(b.hoechstens,1,10,5),seed:Math.floor(Math.random()*1e6)}}}
+      if(t==="nachspuren")return {t,p:{text,size:o==="mittel"?"mittel":"gross"}};
+      if(t==="schwung")return {t,p:{muster:o in MUSTER?o:"welle",rows:clamp(b.reihen,1,6,3)}};
+      if(t==="malfeld")return {t,p:{text,hoehe:o==="klein"?"klein":"gross"}};
+      if(t==="linien")return {t,p:{rows:clamp(b.reihen,1,10,3)}};
+      if(t==="ausmalen")return {t,p:{motif:ref(o)||fb,text}};
+      return {t,p:{}};
+    });
+    if(blocks.length)s.blocks=blocks;
+  }
+  s.t=Date.now();
+}
+async function kiRun(s,wish){
+  wish=String(wish||"").trim();if(!wish){toast("Schreib zuerst deinen Wunsch auf.");return}
+  if(ui.gKiBusy)return;ui.gKiBusy=true;ui.gKiMsg=null;render();
+  const before=JSON.stringify(s);let res;
+  try{res=await KH_SYNC.ki(kiPayload(s,wish))}catch(e){res={fehler:"fehler"}}
+  ui.gKiBusy=false;
+  if(res&&res.ergebnis){try{kiApply(s,res.ergebnis);ui.gUndo={id:s.id,data:before};touch("gestalten");ui.gKiMsg={id:s.id,text:String(res.ergebnis.antwort||"Fertig.")}}
+    catch(e){console.warn(e);ui.gKiMsg={id:s.id,err:true,text:KI_FEHLER.fehler||"Das hat nicht geklappt. Bitte noch einmal versuchen."}}}
+  else ui.gKiMsg={id:s.id,err:true,text:KI_FEHLER[res&&res.fehler]||"Das hat nicht geklappt. Bitte noch einmal versuchen."};
+  if(cur()&&cur().id===s.id)render();else if(ui.tab==="gestalten")render();
 }
 
 /* ---------- view ---------- */
@@ -104,7 +170,7 @@ function list(type){
   const G=gDoc(),mine=G.seiten.filter(s=>s.type===type).sort((a,b)=>b.t-a.t),tpls=G.vorlagen.filter(v=>v.type===type).sort((a,b)=>a.name.localeCompare(b.name,"de"));
   const neu=type==="pf"
     ?`<div class="chips">${Object.entries(PF_LAYOUTS).map(([k,l])=>`<button class="chip" data-act="gNew" data-layout="${k}">+ ${l.name}</button>`).join("")}</div>`
-    :`<div class="row"><button class="btn" data-act="gNew">Neues Arbeitsblatt</button></div>`;
+    :`<div class="row"><button class="btn" data-act="gNew">Neues Arbeitsblatt</button></div>${kiOn()?`<div style="margin-top:12px">${kiBox(null)}</div>`:""}`;
   return `<div class="card"><h2>${type==="pf"?"Neue Portfolioseite":"Neues Arbeitsblatt"}</h2>${neu}
     ${tpls.length?`<h3>Meine Vorlagen</h3><div class="chips">${tpls.map(v=>`<span class="row" style="gap:2px"><button class="chip" data-act="gFromTpl" data-id="${v.id}">${esc(v.name)}</button>${ui.confirm==="tpl:"+v.id?`<button class="link" style="color:var(--bad)" data-act="gDelTpl" data-id="${v.id}">löschen?</button>`:`<button class="link muted" data-act="ask" data-key="tpl:${v.id}" aria-label="Vorlage löschen">×</button>`}</span>`).join("")}</div>`:`<p class="small muted" style="margin:0">Jede Seite kannst du beim Bearbeiten als Vorlage speichern. Sie erscheint dann hier.</p>`}</div>
   <div class="card"><h2>${type==="pf"?"Meine Portfolioseiten":"Meine Arbeitsblätter"}</h2>
@@ -125,7 +191,8 @@ function editorPF(s){
 }
 function themePicker(s){
   return `<h3>Thema</h3><div class="chips">${Object.entries(THEME_OPTS).map(([k,n])=>`<button class="chip ${(s.theme||"")===k?"on":""}" data-act="gTheme" data-theme="${k}">${k?`<span class="chip-ico">${MOTIVE.svg(MOTIVE.THEMES[k].motifs[0],{size:22})}</span>`:""}${n}</button>`).join("")}</div>
-  ${s.theme&&s.type==="pf"?`<div class="row"><div class="seg seg3" style="flex:1 1 220px">${[[1,"Wenig"],[2,"Mittel"],[3,"Viel"]].map(([v,l])=>`<button type="button" class="${(+s.density||2)===v?"on":""}" data-act="gDensity" data-v="${v}">${l}</button>`).join("")}</div><button class="btn-sm" data-act="gShuffle">Neu anordnen</button></div>`:""}`;
+  ${(s.motifs||[]).length?`<p class="small muted" style="margin:0">Schmuck: ${s.motifs.filter(MOTIVE.has).map(k=>esc(MOTIVE.name(k))).join(", ")} <button class="link" data-act="gOwnOff">Motive des Themas verwenden</button></p>`:""}
+  ${(s.theme||(s.motifs||[]).length)&&s.type==="pf"?`<div class="row"><div class="seg seg3" style="flex:1 1 220px">${[[1,"Wenig"],[2,"Mittel"],[3,"Viel"]].map(([v,l])=>`<button type="button" class="${(+s.density||2)===v?"on":""}" data-act="gDensity" data-v="${v}">${l}</button>`).join("")}</div><button class="btn-sm" data-act="gShuffle">Neu anordnen</button></div>`:""}`;
 }
 function editorAB(s){
   return `<label class="f">Name des Blatts<input id="g-name" data-bind="gField" data-f="title" value="${esc(s.title)}"></label>
@@ -137,8 +204,8 @@ function blockFields(b,i){
   const p=b.p,inp=(f,l,v,type="text",extra="")=>`<label class="f">${l}<input id="g-b${i}-${f}" type="${type}" data-bind="gBlock" data-i="${i}" data-f="${f}" value="${esc(v)}" ${extra}></label>`;
   const sel=(f,l,opts,v)=>`<label class="f">${l}<select id="g-b${i}-${f}" data-chg="gBlockSel" data-i="${i}" data-f="${f}">${Object.entries(opts).map(([k,n])=>`<option value="${k}" ${v===k?"selected":""}>${n}</option>`).join("")}</select></label>`;
   if(b.t==="titel"||b.t==="anleitung")return inp("text","Text",p.text);
-  if(b.t==="ausmalen")return `<div class="g-two">${sel("motif","Motiv",MOTIF_OPTS,p.motif)}${inp("text","Aufgabe",p.text)}</div>`;
-  if(b.t==="zaehlen")return `<div class="g-two">${sel("symbol","Symbol",SYMBOL_OPTS,p.symbol)}${inp("rows","Reihen",p.rows,"number",'min="1" max="8"')}${inp("max","Höchstens",p.max,"number",'min="1" max="10"')}</div><button class="btn-sm" data-act="gReroll" data-i="${i}">Neu mischen</button>`;
+  if(b.t==="ausmalen")return `<div class="g-two">${sel("motif","Motiv",motifOpts(),p.motif)}${inp("text","Aufgabe",p.text)}</div>`;
+  if(b.t==="zaehlen")return `<div class="g-two">${sel("symbol","Symbol",symbolOpts(),p.symbol)}${inp("rows","Reihen",p.rows,"number",'min="1" max="8"')}${inp("max","Höchstens",p.max,"number",'min="1" max="10"')}</div><button class="btn-sm" data-act="gReroll" data-i="${i}">Neu mischen</button>`;
   if(b.t==="nachspuren")return `<div class="g-two">${inp("text","Wort oder Buchstaben",p.text)}${sel("size","Größe",{gross:"Groß",mittel:"Mittel"},p.size)}</div>`;
   if(b.t==="schwung")return `<div class="g-two">${sel("muster","Muster",MUSTER,p.muster)}${inp("rows","Reihen",p.rows,"number",'min="1" max="6"')}</div>`;
   if(b.t==="malfeld")return `<div class="g-two">${inp("text","Aufgabe",p.text)}${sel("hoehe","Größe",{gross:"Groß",klein:"Klein"},p.hoehe)}</div>`;
@@ -147,12 +214,12 @@ function blockFields(b,i){
 }
 function editor(s){
   return `<div class="row between"><button class="btn-sm" data-act="gClose">‹ Übersicht</button><span class="small muted">Wird automatisch gespeichert</span></div>
-  <div class="g-wrap"><div class="card g-controls">${s.type==="pf"?editorPF(s):editorAB(s)}
+  <div class="g-wrap"><div class="card g-controls">${kiBox(s)}${s.type==="pf"?editorPF(s):editorAB(s)}
     <div class="row">${ui.gSaveTpl?`<input id="g-tplname" placeholder="Name der Vorlage" value="${esc(s.title?fillVars(s.title,"",s.date):"")}" style="flex:1 1 160px"><button class="btn" data-act="gSaveTpl">Speichern</button><button class="btn ghost" data-act="gSaveTplCancel">Abbrechen</button>`:`<button class="btn" data-act="gPrint">Drucken oder PDF</button><button class="btn ghost" data-act="gSaveTplAsk">Als Vorlage speichern</button>`}</div></div>
   <div class="g-preview" id="g-preview">${pageHTML(s)}</div></div>`;
 }
 VIEWS.gestalten=function(){
-  const mode=ui.gMode||"pf";
+  syncMotive();const mode=ui.gMode||"pf";
   const seg=`<div class="seg seg3" role="tablist">${[["pf","Portfolio"],["ab","Arbeitsblatt"],["brief","Elternbrief"]].map(([k,l])=>`<button type="button" class="${mode===k?"on":""}" data-act="gMode" data-m="${k}" role="tab" aria-selected="${mode===k}">${l}</button>`).join("")}</div>`;
   if(mode==="brief")return seg+VIEWS.briefe();
   const s=cur();
@@ -178,9 +245,13 @@ Object.assign(ACT,{
   gDelTpl:t=>{const G=gDoc();G.vorlagen=G.vorlagen.filter(v=>v.id!==t.dataset.id);touch("gestalten");ui.confirm=null;render()},
   gOpen:t=>{ui.gEdit=t.dataset.id;ui.gSaveTpl=false;render();window.scrollTo(0,0)},
   gClose:()=>{ui.gEdit=null;ui.gSaveTpl=false;render()},
-  gTheme:t=>{const s=cur();s.theme=t.dataset.theme;s.seed=s.seed||Math.floor(Math.random()*1e6);
+  gTheme:t=>{const s=cur();s.theme=t.dataset.theme;s.motifs=[];s.seed=s.seed||Math.floor(Math.random()*1e6);
     if(s.type==="ab"&&s.theme)s.blocks.forEach(b=>{if(b.t==="zaehlen"&&!String(b.p.symbol).startsWith("m:"))b.p.symbol="m:"+MOTIVE.THEMES[s.theme].motifs[0];if(b.t==="ausmalen")b.p.motif=MOTIVE.THEMES[s.theme].motifs[0]});
     touch("gestalten");render()},
+  gKi:()=>{const s=cur();if(s)kiRun(s,ui.gWish)},
+  gKiNew:()=>{const w=String(ui.gWish||"").trim();if(!w){toast("Schreib zuerst deinen Wunsch auf.");return}if(ui.gKiBusy)return;ACT.gNew({dataset:{}});const s=cur();ui.gUndo=null;kiRun(s,w)},
+  gKiUndo:()=>{const u=ui.gUndo,G=gDoc();if(!u)return;const i=G.seiten.findIndex(x=>x.id===u.id);if(i>=0){G.seiten[i]=JSON.parse(u.data);touch("gestalten")}ui.gUndo=null;ui.gKiMsg=null;render()},
+  gOwnOff:()=>{const s=cur();s.motifs=[];touch("gestalten");render()},
   gDensity:t=>{cur().density=+t.dataset.v;touch("gestalten");render()},
   gShuffle:()=>{cur().seed=Math.floor(Math.random()*1e6);touch("gestalten");refreshPreview()},
   gSlot:t=>{const s=cur(),i=+t.dataset.i;if(s.photos[i]){s.photos[i]=null;touch("gestalten");render()}},
@@ -201,6 +272,7 @@ Object.assign(ACT,{
 const _del=ACT.del;
 ACT.del=t=>{const k=t.dataset.key;if(k.startsWith("gs:")){const G=gDoc();G.seiten=G.seiten.filter(s=>s.id!==k.slice(3));touch("gestalten");ui.confirm=null;toast("Gelöscht");render();return}_del(t)};
 Object.assign(BIND,{
+  gWish:t=>{ui.gWish=t.value},
   gField:t=>{const s=cur();if(!s)return;s[t.dataset.f]=t.value;s.t=Date.now();touch("gestalten");refreshPreview()},
   gCap:t=>{const s=cur();s.caps=s.caps||[];s.caps[+t.dataset.i]=t.value;touch("gestalten");refreshPreview()},
   gBlock:t=>{const b=cur().blocks[+t.dataset.i];b.p[t.dataset.f]=t.type==="number"?+t.value:t.value;touch("gestalten");refreshPreview()}
