@@ -680,7 +680,8 @@ main.addEventListener("submit",e=>{e.preventDefault();
     if(id)Object.assign(kidById(id),v);else kinderDoc().list.push(Object.assign({id:uid()},v));touch("kinder");ui.editKid=null;render()}
 });
 boot();
-if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>r.update()).catch(()=>{});
+if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!window.__khReloaded&&!KEY){window.__khReloaded=true;location.reload()}});
 </script>
 <script src="motive.js"></script>
 <script src="gestalten.js"></script>
