@@ -29,6 +29,14 @@ function syncMotive(){(gDoc().motive||[]).forEach(m=>{if(!MOTIVE.has(m.key))MOTI
 const THEME_OPTS=Object.assign({"":"Kein Thema"},Object.fromEntries(Object.entries(MOTIVE.THEMES).map(([k,t])=>[k,t.name])));
 const MUSTER={welle:"Wellen",zacke:"Zacken",bogen:"Girlanden",schlaufe:"Schlaufen",treppe:"Treppen"};
 
+/* every change stamps the open page, deletions leave a tombstone; both feed the merge below */
+function gTouch(){const s=cur();if(s)s.t=Date.now();touch("gestalten")}
+function gGone(id){const G=gDoc();G.geloescht=G.geloescht||{};G.geloescht[id]=Date.now()}
+MERGE.gestalten=(a,b)=>{
+  const gone=Object.assign({},a.geloescht,b.geloescht);for(const k in gone)gone[k]=Math.max((a.geloescht||{})[k]||0,(b.geloescht||{})[k]||0);
+  const join=(x,y,key="id")=>{const m=new Map();[...(x||[]),...(y||[])].forEach(it=>{const k=it[key],o=m.get(k);if(!o||(it.t||0)>(o.t||0))m.set(k,it)});return [...m.values()].filter(it=>!(gone[it[key]]>=(it.t||0))).sort((p,q)=>String(p[key]).localeCompare(String(q[key])))};
+  return Object.assign({},b,a,{seiten:join(a.seiten,b.seiten),vorlagen:join(a.vorlagen,b.vorlagen),motive:join(a.motive,b.motive,"key"),geloescht:gone});
+};
 const seite=id=>gDoc().seiten.find(s=>s.id===id);
 const cur=()=>seite(ui.gEdit);
 function fillVars(t,kid,date){const k=kidById(kid);return String(t||"").replace(/\{Name\}/g,k?k.name.replace(/^Beispiel /,""):"…").replace(/\{Alter\}/g,k&&k.geb?age(k.geb,date||today()).replace(/ 0 Mon\.$/,"").replace(" J.", " Jahre").replace(" Mon."," Monate"):"…")}
@@ -85,7 +93,7 @@ function decoHTML(s,outline){
   const dens=outline?1:(+s.density||2),spots=[["left:34px;top:30px",96,-8],["right:34px;top:30px",96,8],["left:30px;bottom:26px",84,-6],["right:30px;bottom:26px",84,6]];
   const n=outline?(s.type==="ab"?1:2):dens>=2?4:2;let h="";
   const use=outline&&s.type==="ab"?[spots[1]]:spots.slice(0,n);
-  use.forEach(([pos,size,rot],i)=>{h+=`<div class="deco" style="${pos};width:${size}px;height:${size}px;transform:rotate(${(rot+(R()*8-4)).toFixed(1)}deg)">${MOTIVE.svg(pick(i),{size,outline})}</div>`});
+  use.forEach(([pos,size,rot],i)=>{h+=`<div class="deco${/top/.test(pos)?" top":""}" style="${pos};width:${size}px;height:${size}px;transform:rotate(${(rot+(R()*8-4)).toFixed(1)}deg)">${MOTIVE.svg(pick(i),{size,outline})}</div>`});
   return h;
 }
 function motifRow(s){const ms=pageMotifs(s);if(!ms.length||(+s.density||2)<3)return "";const R=rng((s.seed||1)+7);return `<div class="pf-row">${Array.from({length:9},(_,i)=>`<span style="transform:rotate(${(R()*16-8).toFixed(0)}deg)">${MOTIVE.svg(ms[i%ms.length],{size:46})}</span>`).join("")}</div>`}
@@ -99,6 +107,7 @@ function pageHTML(s){
   else if(L==="kann")body=`${photoSlot(s,0,"wide")}<ul class="pf-stars">${text.split("\n").filter(x=>x.trim()).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
   else if(L==="foto")body=`<div class="pf-grid four">${[0,1,2,3].map(i=>`<figure>${photoSlot(s,i)}<figcaption>${esc((s.caps||[])[i]||"")}</figcaption></figure>`).join("")}</div>${text?`<div class="pf-letter">${esc(text)}</div>`:""}`;
   else if(L==="ich")body=`<div class="pf-ich">${photoSlot(s,0,"round")}<dl>${text.split("\n").filter(x=>x.trim()).map(x=>{const i=x.indexOf(":");return i>0?`<div><dt>${esc(x.slice(0,i+1))}</dt><dd>${esc(x.slice(i+1).trim())||"&nbsp;"}</dd></div>`:`<div><dd>${esc(x)}</dd></div>`}).join("")}</dl></div>`;
+  if(s.stil)return styledPF(s,k,L,title,text,foot);
   const T=MOTIVE.THEMES[s.theme],vars=T?` style="--paper-accent:${T.accent};--paper-warm:${T.warm}"`:"";
   return `<div class="a4 pf pf-${L}${T||pageMotifs(s).length?" themed":""}"${vars}>${decoHTML(s,false)}<h1 class="pf-title">${title}</h1>${motifRow(s)}${body}${foot}</div>`;
 }
@@ -126,7 +135,8 @@ function kiPayload(s,wish){
   const deko=(s.motifs||[]).filter(MOTIVE.has);
   const aktuell=s.type==="ab"
     ?{titel:anon(s.title),thema:s.theme||"",deko_motive:deko,bausteine:(s.blocks||[]).map(b=>{const p=b.p||{};return {typ:b.t,text:anon(p.text||""),option:String(p.symbol||p.motif||p.size||p.muster||p.hoehe||"").replace(/^m:/,""),reihen:+p.rows||0,hoechstens:+p.max||0}})}
-    :{titel:anon(s.title),text:anon(s.text),bildunterschriften:s.layout==="foto"?[0,1,2,3].map(i=>anon((s.caps||[])[i]||"")):[],thema:s.theme||"",dichte:+s.density||2,deko_motive:deko};
+    :{titel:anon(s.title),text:anon(s.text),bildunterschriften:s.layout==="foto"?[0,1,2,3].map(i=>anon((s.caps||[])[i]||"")):[],thema:s.theme||"",dichte:+s.density||2,deko_motive:deko,
+      stil:s.stil?(()=>{const st=STIL.norm(s.stil);return Object.assign({},st,{zitat:anon(st.zitat),aufkleber:st.aufkleber.map(a=>({motiv:a.m,x:a.x,y:a.y,groesse:a.g,drehung:a.d}))})})():"noch kein Stil"};
   return {type:s.type,layout:s.layout||"",alter:k&&k.geb?age(k.geb,s.date||today()):"",wunsch:anon(wish),bibliothek:bib,aktuell};
 }
 const clamp=(v,a,b,d)=>{v=Math.round(+v);return isFinite(v)&&v>=a?Math.min(b,v):d};
@@ -136,7 +146,9 @@ function kiApply(s,r){
   const ref=x=>{x=String(x||"").replace(/^m:/,"");const n=/^neu:(\d+)$/.exec(x);if(n)return neu[+n[1]]||null;return MOTIVE.has(x)?x:null};
   const theme=r.thema in MOTIVE.THEMES?r.thema:"";const T=MOTIVE.THEMES[theme];
   s.title=String(r.titel||s.title||"");s.theme=theme;s.motifs=(r.deko_motive||[]).map(ref).filter(Boolean).slice(0,4);s.seed=Math.floor(Math.random()*1e6);
-  if(s.type==="pf"){s.text=String(r.text??s.text);s.density=clamp(r.dichte,1,3,2);if(s.layout==="foto")s.caps=[0,1,2,3].map(i=>String((r.bildunterschriften||[])[i]||""))}
+  if(s.type==="pf"){s.text=String(r.text??s.text);s.density=clamp(r.dichte,1,3,2);if(s.layout==="foto")s.caps=[0,1,2,3].map(i=>String((r.bildunterschriften||[])[i]||""));
+    if(r.stil){const st=Object.assign({},r.stil);st.aufkleber=(r.stil.aufkleber||[]).map(a=>({m:ref(a.motiv),x:a.x,y:a.y,g:a.groesse,d:a.drehung})).filter(a=>a.m);
+      if(!(STIL.VARIANTEN[s.layout]||{})[st.variante])st.variante=1;s.stil=STIL.norm(st)}}
   else{
     const fb=s.motifs[0]||(T&&T.motifs[0])||"bagger";
     const blocks=(r.bausteine||[]).filter(b=>BLOCKS[b.typ]).slice(0,14).map(b=>{const t=b.typ,o=String(b.option||""),text=String(b.text||"");
@@ -159,10 +171,30 @@ async function kiRun(s,wish){
   const before=JSON.stringify(s);let res;
   try{res=await KH_SYNC.ki(kiPayload(s,wish))}catch(e){res={fehler:"fehler"}}
   ui.gKiBusy=false;
-  if(res&&res.ergebnis){try{kiApply(s,res.ergebnis);ui.gUndo={id:s.id,data:before};touch("gestalten");ui.gKiMsg={id:s.id,text:String(res.ergebnis.antwort||"Fertig.")}}
+  if(res&&res.ergebnis){try{kiApply(s,res.ergebnis);ui.gUndo={id:s.id,data:before};gTouch();ui.gKiMsg={id:s.id,text:String(res.ergebnis.antwort||"Fertig.")}}
     catch(e){console.warn(e);ui.gKiMsg={id:s.id,err:true,text:KI_FEHLER.fehler||"Das hat nicht geklappt. Bitte noch einmal versuchen."}}}
   else ui.gKiMsg={id:s.id,err:true,text:KI_FEHLER[res&&res.fehler]||"Das hat nicht geklappt. Bitte noch einmal versuchen."};
   if(cur()&&cur().id===s.id)render();else if(ui.tab==="gestalten")render();
+}
+
+function styledPF(s,k,L,title,text,foot){
+  const st=STIL.norm(s.stil),box="st-box";let body="";
+  if(L==="lern")body=`<div class="pf-grid lern">${photoSlot(s,0,"big")}${photoSlot(s,1)}${photoSlot(s,2)}</div><div class="pf-letter ${box}">${esc(text)}</div>`;
+  else if(L==="kann")body=`<div class="pf-kann-row">${photoSlot(s,0,"wide")}<ul class="pf-stars ${box}">${text.split("\n").filter(x=>x.trim()).map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  else if(L==="foto")body=`<div class="pf-grid four">${[0,1,2,3].map(i=>`<figure>${photoSlot(s,i)}<figcaption>${esc((s.caps||[])[i]||"")}</figcaption></figure>`).join("")}</div>${text?`<div class="pf-letter ${box}">${esc(text)}</div>`:""}`;
+  else if(L==="ich")body=`<div class="pf-ich">${photoSlot(s,0,"round")}<dl class="${box}">${text.split("\n").filter(x=>x.trim()).map(x=>{const i=x.indexOf(":");return i>0?`<div><dt>${esc(x.slice(0,i+1))}</dt><dd>${esc(x.slice(i+1).trim())||"&nbsp;"}</dd></div>`:`<div><dd>${esc(x)}</dd></div>`}).join("")}</dl></div>`;
+  const C=STIL.colors(s),zitat=st.zitat?`<div class="pf-zitat">„${esc(fillVars(st.zitat,s.kid,s.date))}“</div>`:"";
+  const deco=st.aufkleber.length?STIL.stickersHTML(s):decoHTML(s,false);
+  return `<div class="a4 pf pf-${L} themed ${STIL.classes(s)}" style="${STIL.vars(s)}">${STIL.bgHTML(s,C)}${STIL.frameHTML(s,C)}${deco}${STIL.titleHTML(fillVars(s.title,s.kid,s.date),s,esc)}${motifRow(s)}${zitat}${body}${foot}</div>`;
+}
+function stilPicker(s){
+  const st=STIL.norm(s.stil),O=STIL.OPTS,sel=(f,l,opts,v)=>`<label class="f">${l}<select id="g-st-${f}" data-chg="gStil" data-f="${f}">${Object.entries(opts).map(([k,n])=>`<option value="${k}" ${String(v)===k?"selected":""}>${n}</option>`).join("")}</select></label>`;
+  if(!s.stil)return `<h3>Stil</h3><div class="row"><button class="btn-sm" data-act="gStilRandom">Überrasch mich</button></div>`;
+  return `<h3>Stil</h3><div class="row"><button class="btn-sm" data-act="gStilRandom">Überrasch mich</button><button class="btn-sm" data-act="gStilOff">Schlicht wie früher</button></div>
+  <div class="g-two">${sel("palette","Farben",Object.assign({"":"Wie das Thema"},Object.fromEntries(Object.entries(STIL.PALETTES).map(([k,p])=>[k,p.name]))),st.palette)}${sel("variante","Anordnung",STIL.VARIANTEN[s.layout]||{1:"Standard"},st.variante)}
+  ${sel("hintergrund","Hintergrund",O.hintergrund,st.hintergrund)}${sel("rahmen","Rahmen",O.rahmen,st.rahmen)}${sel("titel","Überschrift",O.titel,st.titel)}${sel("schrift","Schrift",O.schrift,st.schrift)}${sel("foto","Fotos",O.foto,st.foto)}${sel("text","Textfeld",O.text,st.text)}</div>
+  ${st.zitat?`<label class="f">Sprechblase<input id="g-st-zitat" data-bind="gZitat" value="${esc(st.zitat)}"></label>`:""}
+  ${st.aufkleber.length?`<p class="small muted" style="margin:0">${st.aufkleber.length} Aufkleber frei platziert. <button class="link" data-act="gStickerOff">Aufkleber entfernen</button></p>`:""}`;
 }
 
 /* ---------- view ---------- */
@@ -172,10 +204,11 @@ function list(type){
     ?`<div class="chips">${Object.entries(PF_LAYOUTS).map(([k,l])=>`<button class="chip" data-act="gNew" data-layout="${k}">+ ${l.name}</button>`).join("")}</div>`
     :`<div class="row"><button class="btn" data-act="gNew">Neues Arbeitsblatt</button></div>${kiOn()?`<div style="margin-top:12px">${kiBox(null)}</div>`:""}`;
   return `<div class="card"><h2>${type==="pf"?"Neue Portfolioseite":"Neues Arbeitsblatt"}</h2>${neu}
-    ${tpls.length?`<h3>Meine Vorlagen</h3><div class="chips">${tpls.map(v=>`<span class="row" style="gap:2px"><button class="chip" data-act="gFromTpl" data-id="${v.id}">${esc(v.name)}</button>${ui.confirm==="tpl:"+v.id?`<button class="link" style="color:var(--bad)" data-act="gDelTpl" data-id="${v.id}">löschen?</button>`:`<button class="link muted" data-act="ask" data-key="tpl:${v.id}" aria-label="Vorlage löschen">×</button>`}</span>`).join("")}</div>`:`<p class="small muted" style="margin:0">Jede Seite kannst du beim Bearbeiten als Vorlage speichern. Sie erscheint dann hier.</p>`}</div>
+    ${tpls.length?`<h3>Meine Vorlagen</h3><p class="small muted" style="margin:0">Tippe auf eine Vorlage, um daraus eine neue Seite zu machen.</p><div class="tpl-grid">${tpls.map(v=>`<div class="tpl"><button class="tpl-thumb" data-act="gFromTpl" data-id="${v.id}" aria-label="Neue Seite aus Vorlage ${esc(v.name)}">${tplPreview(v)}</button><div class="row between" style="gap:4px;flex-wrap:nowrap"><span class="tpl-name">${esc(v.name)}</span>${ui.confirm==="tpl:"+v.id?`<button class="link" style="color:var(--bad)" data-act="gDelTpl" data-id="${v.id}">löschen?</button>`:`<button class="link muted" data-act="ask" data-key="tpl:${v.id}" aria-label="Vorlage löschen">×</button>`}</div></div>`).join("")}</div>`:`<p class="small muted" style="margin:0">Jede Seite kannst du beim Bearbeiten als Vorlage speichern. Sie erscheint dann hier.</p>`}</div>
   <div class="card"><h2>${type==="pf"?"Meine Portfolioseiten":"Meine Arbeitsblätter"}</h2>
     ${mine.length?`<ul class="list">${mine.map(s=>`<li class="row between"><button class="link" style="text-align:left;font-size:1rem" data-act="gOpen" data-id="${s.id}">${esc(fillVars(s.title||s.name,s.kid,s.date)||"Ohne Titel")}${s.kid?` · ${esc((kidById(s.kid)||{name:""}).name)}`:""}</button><span class="row"><span class="date">${esc(fmtD(s.date||today(),{day:"2-digit",month:"2-digit",year:"2-digit"}))}</span>${delBtn("gs:"+s.id)}</span></li>`).join("")}</ul>`:`<p class="small muted" style="margin:0">Noch nichts gestaltet. Alles, was du hier anlegst, wird automatisch gespeichert.</p>`}</div>`;
 }
+function tplPreview(v){try{return pageHTML(Object.assign({id:"tpl-"+v.id,type:v.type,kid:"",photos:[],caps:[],date:today(),seed:7},JSON.parse(JSON.stringify(v.data))))}catch{return ""}}
 function editorPF(s){
   const L=PF_LAYOUTS[s.layout],pics=s.kid?fotos(s.kid):[];
   return `<label class="f">Kind<select id="g-kid" data-chg="gKid">${kidOptions(s.kid,"Kind auswählen")}</select></label>
@@ -185,6 +218,7 @@ function editorPF(s){
   <label class="f">${s.layout==="kann"?"Was kann das Kind? (eine Zeile pro Punkt)":s.layout==="ich"?"Steckbrief (eine Zeile pro Punkt, Frage: Antwort)":"Text"}<textarea id="g-text" data-bind="gField" data-f="text" style="min-height:${s.layout==="lern"?200:140}px">${esc(s.text)}</textarea></label>
   <p class="small muted" style="margin:0">{Name} und {Alter} werden automatisch durch die Angaben des Kindes ersetzt.</p>
   ${themePicker(s)}
+  ${stilPicker(s)}
   <h3>Fotos (${L.photos} ${L.photos===1?"Platz":"Plätze"})</h3>
   <div class="row">${Array.from({length:L.photos},(_,i)=>{const a=(s.photos||[])[i];return `<button class="thumb slot" data-act="gSlot" data-i="${i}" aria-label="Fotoplatz ${i+1}${a?" leeren":""}">${a?`<img data-asset="${(fotos(s.kid).find(p=>p.asset===a)||{}).thumb||a}" alt="">`:`<span>${i+1}</span>`}</button>`}).join("")}</div>
   ${!s.kid?`<p class="small muted" style="margin:0">Wähle oben ein Kind, dann erscheinen seine Fotos.</p>`:pics.length?`<p class="small muted" style="margin:0">Tippe auf ein Foto, um es in den nächsten freien Platz zu legen. Ein Tipp auf einen belegten Platz leert ihn.</p><div class="grid pick">${pics.map(p=>`<button class="thumb" data-act="gPick" data-asset="${p.asset}"><img data-asset="${p.thumb}" alt="${esc(p.caption)}"></button>`).join("")}</div>`:`<p class="small muted" style="margin:0">Von diesem Kind gibt es noch keine Fotos. Du kannst sie unter Kinder → Fotos hochladen.</p>`}`;
@@ -230,9 +264,9 @@ VIEWS.gestalten=function(){
 /* ---------- actions ---------- */
 function newSeite(type,base){
   const s=Object.assign({id:uid(),type,t:Date.now(),date:today(),kid:"",photos:[],caps:[]},base);
-  gDoc().seiten.push(s);touch("gestalten");ui.gEdit=s.id;ui.gSaveTpl=false;render();window.scrollTo(0,0);
+  gDoc().seiten.push(s);gTouch();ui.gEdit=s.id;ui.gSaveTpl=false;render();window.scrollTo(0,0);
 }
-function scalePreview(){$("#main").classList.toggle("wide",ui.tab==="gestalten"&&!!ui.gEdit);const pv=$("#g-preview");if(!pv)return;const a=pv.querySelector(".a4");if(a)a.style.zoom=Math.min(1,(pv.clientWidth-24)/794,innerWidth>=1000?(innerHeight-130)/1123:1)}
+function scalePreview(){document.querySelectorAll(".tpl-thumb").forEach(t=>t.style.setProperty("--tz",(t.clientWidth/794).toFixed(4)));$("#main").classList.toggle("wide",ui.tab==="gestalten"&&!!ui.gEdit);const pv=$("#g-preview");if(!pv)return;const a=pv.querySelector(".a4");if(a)a.style.zoom=Math.min(1,(pv.clientWidth-24)/794,innerWidth>=1000?(innerHeight-130)/1123:1)}
 const _render=render;
 render=function(){_render();scalePreview()};
 window.addEventListener("resize",scalePreview);
@@ -242,44 +276,49 @@ Object.assign(ACT,{
   gNew:t=>{if((ui.gMode||"pf")==="pf"){const L=PF_LAYOUTS[t.dataset.layout];newSeite("pf",{layout:t.dataset.layout,title:L.title,text:L.text})}
     else newSeite("ab",{title:"Arbeitsblatt",blocks:["titel","name","anleitung","zaehlen"].map(k=>({t:k,p:BLOCKS[k].d()}))})},
   gFromTpl:t=>{const v=gDoc().vorlagen.find(x=>x.id===t.dataset.id);if(!v)return;const d=JSON.parse(JSON.stringify(v.data));if(d.blocks)d.blocks.forEach(b=>{if(b.t==="zaehlen")b.p.seed=Math.floor(Math.random()*1e6)});newSeite(v.type,d)},
-  gDelTpl:t=>{const G=gDoc();G.vorlagen=G.vorlagen.filter(v=>v.id!==t.dataset.id);touch("gestalten");ui.confirm=null;render()},
+  gDelTpl:t=>{const G=gDoc();gGone(t.dataset.id);G.vorlagen=G.vorlagen.filter(v=>v.id!==t.dataset.id);gTouch();ui.confirm=null;render()},
   gOpen:t=>{ui.gEdit=t.dataset.id;ui.gSaveTpl=false;render();window.scrollTo(0,0)},
   gClose:()=>{ui.gEdit=null;ui.gSaveTpl=false;render()},
   gTheme:t=>{const s=cur();s.theme=t.dataset.theme;s.motifs=[];s.seed=s.seed||Math.floor(Math.random()*1e6);
     if(s.type==="ab"&&s.theme)s.blocks.forEach(b=>{if(b.t==="zaehlen"&&!String(b.p.symbol).startsWith("m:"))b.p.symbol="m:"+MOTIVE.THEMES[s.theme].motifs[0];if(b.t==="ausmalen")b.p.motif=MOTIVE.THEMES[s.theme].motifs[0]});
-    touch("gestalten");render()},
+    gTouch();render()},
   gKi:()=>{const s=cur();if(s)kiRun(s,ui.gWish)},
   gKiNew:()=>{const w=String(ui.gWish||"").trim();if(!w){toast("Schreib zuerst deinen Wunsch auf.");return}if(ui.gKiBusy)return;ACT.gNew({dataset:{}});const s=cur();ui.gUndo=null;kiRun(s,w)},
-  gKiUndo:()=>{const u=ui.gUndo,G=gDoc();if(!u)return;const i=G.seiten.findIndex(x=>x.id===u.id);if(i>=0){G.seiten[i]=JSON.parse(u.data);touch("gestalten")}ui.gUndo=null;ui.gKiMsg=null;render()},
-  gOwnOff:()=>{const s=cur();s.motifs=[];touch("gestalten");render()},
-  gDensity:t=>{cur().density=+t.dataset.v;touch("gestalten");render()},
-  gShuffle:()=>{cur().seed=Math.floor(Math.random()*1e6);touch("gestalten");refreshPreview()},
-  gSlot:t=>{const s=cur(),i=+t.dataset.i;if(s.photos[i]){s.photos[i]=null;touch("gestalten");render()}},
+  gKiUndo:()=>{const u=ui.gUndo,G=gDoc();if(!u)return;const i=G.seiten.findIndex(x=>x.id===u.id);if(i>=0){G.seiten[i]=JSON.parse(u.data);gTouch()}ui.gUndo=null;ui.gKiMsg=null;render()},
+  gStilRandom:()=>{const s=cur();s.stil=STIL.random(s.theme);s.seed=Math.floor(Math.random()*1e6);if(s.stil.variante>Object.keys(STIL.VARIANTEN[s.layout]||{1:1}).length)s.stil.variante=1;gTouch();render()},
+  gStilOff:()=>{const s=cur();delete s.stil;gTouch();render()},
+  gStickerOff:()=>{const s=cur();s.stil.aufkleber=[];gTouch();render()},
+  gOwnOff:()=>{const s=cur();s.motifs=[];gTouch();render()},
+  gDensity:t=>{cur().density=+t.dataset.v;gTouch();render()},
+  gShuffle:()=>{cur().seed=Math.floor(Math.random()*1e6);gTouch();refreshPreview()},
+  gSlot:t=>{const s=cur(),i=+t.dataset.i;if(s.photos[i]){s.photos[i]=null;gTouch();render()}},
   gPick:t=>{const s=cur(),n=PF_LAYOUTS[s.layout].photos;let i=-1;for(let j=0;j<n;j++)if(!s.photos[j]){i=j;break}
-    if(i<0){toast("Alle Fotoplätze sind belegt. Tippe oben auf einen Platz, um ihn zu leeren.");return}s.photos[i]=t.dataset.asset;touch("gestalten");render()},
-  gMove:t=>{const s=cur(),i=+t.dataset.i,j=i+ +t.dataset.d;if(j<0||j>=s.blocks.length)return;[s.blocks[i],s.blocks[j]]=[s.blocks[j],s.blocks[i]];touch("gestalten");render()},
-  gDelBlock:t=>{const s=cur();s.blocks.splice(+t.dataset.i,1);touch("gestalten");render()},
-  gReroll:t=>{cur().blocks[+t.dataset.i].p.seed=Math.floor(Math.random()*1e6);touch("gestalten");refreshPreview()},
+    if(i<0){toast("Alle Fotoplätze sind belegt. Tippe oben auf einen Platz, um ihn zu leeren.");return}s.photos[i]=t.dataset.asset;gTouch();render()},
+  gMove:t=>{const s=cur(),i=+t.dataset.i,j=i+ +t.dataset.d;if(j<0||j>=s.blocks.length)return;[s.blocks[i],s.blocks[j]]=[s.blocks[j],s.blocks[i]];gTouch();render()},
+  gDelBlock:t=>{const s=cur();s.blocks.splice(+t.dataset.i,1);gTouch();render()},
+  gReroll:t=>{cur().blocks[+t.dataset.i].p.seed=Math.floor(Math.random()*1e6);gTouch();refreshPreview()},
   gSaveTplAsk:()=>{ui.gSaveTpl=true;render();setTimeout(()=>{const i=$("#g-tplname");if(i){i.focus();i.select()}},30)},
   gSaveTplCancel:()=>{ui.gSaveTpl=false;render()},
   gSaveTpl:()=>{const s=cur(),name=($("#g-tplname").value||"").trim()||"Vorlage";
-    const data=s.type==="pf"?{layout:s.layout,title:s.title,text:s.text,caps:s.caps||[],theme:s.theme||"",density:s.density||2}:{title:s.title,blocks:s.blocks,theme:s.theme||""};
-    gDoc().vorlagen.push({id:uid(),type:s.type,name,data:JSON.parse(JSON.stringify(data)),t:Date.now()});touch("gestalten");ui.gSaveTpl=false;toast(`Vorlage „${name}“ gespeichert`);render()},
+    const data=s.type==="pf"?{layout:s.layout,title:s.title,text:s.text,caps:s.caps||[],theme:s.theme||"",density:s.density||2,stil:s.stil||null,motifs:s.motifs||[]}:{title:s.title,blocks:s.blocks,theme:s.theme||""};
+    gDoc().vorlagen.push({id:uid(),type:s.type,name,data:JSON.parse(JSON.stringify(data)),t:Date.now()});gTouch();ui.gSaveTpl=false;toast(`Vorlage „${name}“ gespeichert`);render()},
   gPrint:async()=>{const s=cur();if(!s)return;const root=$("#print-root");root.innerHTML=pageHTML(s);
     const imgs=[...root.querySelectorAll("img[data-asset]")];await Promise.all(imgs.map(img=>photoURL(img.dataset.asset).then(u=>new Promise(r=>{img.onload=img.onerror=r;img.src=u})).catch(()=>{})));
     const old=document.title;document.title=fillVars(s.title,s.kid,s.date)||"Kita-Helfer";setTimeout(()=>{window.print();document.title=old},50)}
 });
 const _del=ACT.del;
-ACT.del=t=>{const k=t.dataset.key;if(k.startsWith("gs:")){const G=gDoc();G.seiten=G.seiten.filter(s=>s.id!==k.slice(3));touch("gestalten");ui.confirm=null;toast("Gelöscht");render();return}_del(t)};
+ACT.del=t=>{const k=t.dataset.key;if(k.startsWith("gs:")){const G=gDoc();gGone(k.slice(3));G.seiten=G.seiten.filter(s=>s.id!==k.slice(3));gTouch();ui.confirm=null;toast("Gelöscht");render();return}_del(t)};
 Object.assign(BIND,{
   gWish:t=>{ui.gWish=t.value},
-  gField:t=>{const s=cur();if(!s)return;s[t.dataset.f]=t.value;s.t=Date.now();touch("gestalten");refreshPreview()},
-  gCap:t=>{const s=cur();s.caps=s.caps||[];s.caps[+t.dataset.i]=t.value;touch("gestalten");refreshPreview()},
-  gBlock:t=>{const b=cur().blocks[+t.dataset.i];b.p[t.dataset.f]=t.type==="number"?+t.value:t.value;touch("gestalten");refreshPreview()}
+  gZitat:t=>{const s=cur();s.stil.zitat=t.value;gTouch();refreshPreview()},
+  gField:t=>{const s=cur();if(!s)return;s[t.dataset.f]=t.value;s.t=Date.now();gTouch();refreshPreview()},
+  gCap:t=>{const s=cur();s.caps=s.caps||[];s.caps[+t.dataset.i]=t.value;gTouch();refreshPreview()},
+  gBlock:t=>{const b=cur().blocks[+t.dataset.i];b.p[t.dataset.f]=t.type==="number"?+t.value:t.value;gTouch();refreshPreview()}
 });
 Object.assign(CHG,{
-  gKid:t=>{const s=cur();if(s.kid!==t.value){s.kid=t.value;s.photos=[]}touch("gestalten");render()},
-  gBlockSel:t=>{cur().blocks[+t.dataset.i].p[t.dataset.f]=t.value;touch("gestalten");refreshPreview()},
-  gAdd:t=>{if(!t.value)return;cur().blocks.push({t:t.value,p:BLOCKS[t.value].d()});touch("gestalten");render()}
+  gStil:t=>{const s=cur();s.stil=s.stil||{};s.stil[t.dataset.f]=t.dataset.f==="variante"?+t.value:t.value;gTouch();refreshPreview()},
+  gKid:t=>{const s=cur();if(s.kid!==t.value){s.kid=t.value;s.photos=[]}gTouch();render()},
+  gBlockSel:t=>{cur().blocks[+t.dataset.i].p[t.dataset.f]=t.value;gTouch();refreshPreview()},
+  gAdd:t=>{if(!t.value)return;cur().blocks.push({t:t.value,p:BLOCKS[t.value].d()});gTouch();render()}
 });
 })();

@@ -15,6 +15,15 @@ const reply = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 const THEMES = ["", "bagger", "feuerwehr", "dino", "weltraum", "meer", "tiere", "natur", "fussball", "herbst", "maerchen"];
+const STIL = {
+  palette: ["", "sonne", "meer", "wiese", "beere", "bonbon", "herbst", "nacht", "regenbogen", "pastell", "feuer", "wald", "baustelle"],
+  hintergrund: ["weiss", "uni", "punkte", "karo", "streifen", "konfetti", "sterne", "wolken", "wellen", "herzen"],
+  rahmen: ["keiner", "linie", "doppelt", "naht", "band", "kreise", "wimpel", "ecken"],
+  titel: ["schlicht", "banner", "schild", "wolke", "bunt", "welle"],
+  foto: ["rund", "polaroid", "klebeband", "oval", "blob", "rahmen"],
+  text: ["schlicht", "zettel", "sprechblase", "karte", "tafel"],
+  schrift: ["baloo", "fredoka", "hand", "kreide"],
+};
 const BLOCK_TYPES = ["titel", "name", "anleitung", "zaehlen", "nachspuren", "schwung", "malfeld", "linien", "ausmalen"];
 
 const SYSTEM = `Du gestaltest Seiten für eine Erzieherin in einer deutschen Kita (Kinder von 1 bis 6 Jahren).
@@ -36,8 +45,21 @@ Motive:
 - Auf ein neues Motiv verweist du mit "neu:0", "neu:1" usw. (in der Reihenfolge von "neue_motive"), auf eines aus der Bibliothek mit seinem Schlüssel.
 - "deko_motive" sind die Motive, die als Schmuck auf der Seite erscheinen (höchstens 4). Leer lassen heißt: die Motive des Themas.`;
 
-const PF_HINT = `Portfolioseite. Felder: titel (Überschrift), text, bildunterschriften (nur Fotoseite, genau 4 Einträge, sonst leer), thema, dichte (1 wenig, 2 mittel, 3 viel Schmuck), deko_motive, neue_motive.
-Layouts: "lern" Lerngeschichte als Brief an das Kind; "kann" Liste "Das kann ich schon", eine Zeile pro Punkt; "foto" Fotoseite mit vier Bildunterschriften; "ich" Steckbrief, eine Zeile pro Punkt im Format "Frage: Antwort".`;
+const PF_HINT = `Portfolioseite (A4 hochkant, 794 × 1123 Pixel). Felder: titel (Überschrift), text, bildunterschriften (nur Fotoseite, genau 4 Einträge, sonst leer), thema, dichte (1 wenig, 2 mittel, 3 viel Schmuck: bei 3 erscheint zusätzlich eine Motivreihe unter der Überschrift), deko_motive, neue_motive, stil.
+Layouts: "lern" Lerngeschichte als Brief an das Kind; "kann" Liste "Das kann ich schon", eine Zeile pro Punkt; "foto" Fotoseite mit vier Bildunterschriften; "ich" Steckbrief, eine Zeile pro Punkt im Format "Frage: Antwort".
+
+Gestaltung (stil): Du bist hier frei wie eine kreative Grafikerin für Kinderbücher. Stimme alles aufeinander ab und auf das Kind und den Wunsch.
+- palette: Farbwelt. sonne, meer, wiese, beere, bonbon, herbst, nacht (Sternennacht), regenbogen, pastell, feuer (Feuerwehr), wald, baustelle. "" heißt Farben des Themas.
+- hintergrund: weiss, uni (zart getönt), punkte, karo, streifen, konfetti, sterne, wolken, wellen (unten), herzen.
+- rahmen: keiner, linie, doppelt, naht (genähter Stoffrand), band (breiter Farbrand), kreise (bunte Punkte rundum), wimpel (Wimpelkette oben), ecken (Fotoalbum-Ecken).
+- titel: schlicht, banner (Stoffband), schild (schräges Farbschild), wolke, bunt (jeder Buchstabe andere Farbe, leicht gedreht), welle (Wellenlinie darunter).
+- foto: rund (abgerundet), polaroid (schräg mit weißem Rand), klebeband, oval, blob (Klecksform), rahmen (doppelter Farbrahmen).
+- text: schlicht, zettel (linierter Notizzettel), sprechblase, karte (getönte Karte), tafel (grüne Kreidetafel).
+- schrift: baloo (rund, kräftig), fredoka (weich), hand (Handschrift), kreide (verspielte Handschrift).
+- variante: Anordnung. lern 1 großes Foto links, 2 großes Foto rechts, 3 drei Fotos nebeneinander; kann 1 Foto oben, 2 Foto neben der Liste, 3 Foto unten; foto 1 Raster, 2 Collage mit großem Foto oben, 3 verstreut; ich 1 Foto in der Mitte, 2 Foto neben dem Steckbrief.
+- zitat: optional ein kurzer Satz des Kindes in einer Sprechblase (nur wenn die Erzieherin ihn genannt hat oder ausdrücklich eine Sprechblase wünscht, sonst "").
+- aufkleber: optional frei platzierte Motive (Bibliothek oder neu:N) mit x und y in Prozent der Seite (Mittelpunkt), groesse in Pixeln (30 bis 260) und drehung in Grad (-40 bis 40). Sind welche angegeben, ersetzen sie die automatische Deko in den Ecken. Setze sie in freie Bereiche: Ränder, Ecken, neben die Überschrift, zwischen Fotos und Text. Fotos liegen ungefähr zwischen y 18 und 50 Prozent, der Text darunter; dort nur kleine Aufkleber am Rand.
+Wenn die Seite noch keinen Stil hat oder der Wunsch die Gestaltung betrifft, gestalte mutig und abwechslungsreich. Betrifft der Wunsch nur den Text, behalte den aktuellen Stil bei.`;
 
 const AB_HINT = `Arbeitsblatt für Kinder im Kita-Alter, das ausgedruckt wird. Es besteht aus Bausteinen von oben nach unten.
 Jeder Baustein hat typ, text, option, reihen, hoechstens. Felder, die ein Typ nicht nutzt, sind "" bzw. 0.
@@ -100,8 +122,33 @@ function schemaFor(type: string) {
       text: { type: "string" },
       bildunterschriften: { type: "array", items: { type: "string" } },
       dichte: { type: "integer" },
+      stil: {
+        type: "object",
+        properties: {
+          ...Object.fromEntries(Object.entries(STIL).map(([k, v]) => [k, { type: "string", enum: v }])),
+          variante: { type: "integer" },
+          zitat: { type: "string" },
+          aufkleber: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                motiv: { type: "string" },
+                x: { type: "integer" },
+                y: { type: "integer" },
+                groesse: { type: "integer" },
+                drehung: { type: "integer" },
+              },
+              required: ["motiv", "x", "y", "groesse", "drehung"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: [...Object.keys(STIL), "variante", "zitat", "aufkleber"],
+        additionalProperties: false,
+      },
     },
-    required: ["antwort", "titel", "text", "bildunterschriften", "thema", "dichte", "deko_motive", "neue_motive"],
+    required: ["antwort", "titel", "text", "bildunterschriften", "thema", "dichte", "deko_motive", "neue_motive", "stil"],
     additionalProperties: false,
   };
 }

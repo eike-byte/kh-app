@@ -125,6 +125,11 @@ nav.tabs button.on{color:var(--accent);font-weight:700}
 @media (min-width:1000px){main.wrap.wide{max-width:1240px}.g-wrap{grid-template-columns:minmax(320px,420px) 1fr;align-items:start}.g-preview{position:sticky;top:76px}}
 .g-controls{min-width:0}
 .g-block{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:12px}
+.tpl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.tpl-thumb{display:block;padding:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;aspect-ratio:794/1123;position:relative}
+.tpl-thumb .a4{position:absolute;top:0;left:0;zoom:var(--tz,.16);box-shadow:none;pointer-events:none}
+.tpl-name{font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ki-box{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;background:var(--accent-soft)}
 .ki-box textarea{min-height:70px}
 .g-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
@@ -266,6 +271,10 @@ async function decryptObj(b,key=KEY){const pt=await crypto.subtle.decrypt({name:
 /* ---------- store: each section is one encrypted document ---------- */
 let KEY=null,COL=null,META=null,unsub=null,DL=null,ASSETS=null;
 const DOCS={},dirty=new Set(),ver={},timers={},chains={},seenTs={};
+/* MERGE[name](local,remote) joins two versions of a document item by item, so that edits made on
+   two devices do not overwrite each other; documents without a merge rule use last write wins */
+const MERGE={};
+const canon=x=>JSON.stringify(x,(k,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
 function D(name,init){if(!DOCS[name])DOCS[name]=init();return DOCS[name]}
 function cacheIdx(){try{return JSON.parse(LS.get("kh:idx")||"[]")}catch{return []}}
 function cachePut(name,body){LS.set("kh:c:"+name,JSON.stringify(body));const i=cacheIdx();if(!i.includes(name)){i.push(name);LS.set("kh:idx",JSON.stringify(i))}}
@@ -358,8 +367,10 @@ async function start(){
     let changed=false;
     const ids=new Set(snap.docs.map(d=>d.id));
     for(const n in DOCS)if(!ids.has(n)&&!dirty.has(n)&&seenTs[n]){delete DOCS[n];changed=true}
-    for(const d of snap.docs){if(d.id==="meta"||dirty.has(d.id))continue;const b=d.data();if(!b||!b.ct||seenTs[d.id]===b.ts)continue;
-      try{DOCS[d.id]=await decryptObj(b);seenTs[d.id]=b.ts;cachePut(d.id,b);changed=true}catch{}}
+    for(const d of snap.docs){const M=MERGE[d.id];if(d.id==="meta"||(dirty.has(d.id)&&!M))continue;const b=d.data();if(!b||!b.ct||seenTs[d.id]===b.ts)continue;
+      try{const remote=await decryptObj(b);seenTs[d.id]=b.ts;
+        if(M&&DOCS[d.id]){const merged=M(DOCS[d.id],remote);DOCS[d.id]=merged;if(canon(merged)!==canon(remote))touch(d.id);else cachePut(d.id,b)}
+        else{DOCS[d.id]=remote;cachePut(d.id,b)}changed=true}catch(e){console.warn(e)}}
     if(!dirty.size)setSync();
     if(changed)safeRender();
   },e=>{console.warn(e);setSync("offline")})}
@@ -686,6 +697,7 @@ if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceW
 if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!window.__khReloaded&&!KEY){window.__khReloaded=true;location.reload()}});
 </script>
 <script src="motive.js"></script>
+<script src="stil.js"></script>
 <script src="gestalten.js"></script>
 </body>
 </html>
