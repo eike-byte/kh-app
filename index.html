@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kita-Helfer</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#2B59C3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kita-Helfer">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Baloo+2:wght@600;700&display=swap">
+<style>
+/* Layout: one column, max 720px, sticky header, tab bar fixed at the bottom for one-handed use on the phone */
+:root{
+  --bg:#F2F5F8; --surface:#FFFFFF; --ink:#1C2633; --muted:#5A6676; --line:#D9E0E8;
+  --accent:#2B59C3; --accent-soft:#E3EBFB; --on-accent:#FFFFFF;
+  --ok:#23804F; --ok-soft:#E1F3E9; --warn:#B86A00; --warn-soft:#FBEFD9; --bad:#C0392B; --bad-soft:#FBE5E2; --off:#6B7685; --off-soft:#ECEFF3;
+  --a-bew:#E4572E; --a-spr:#2B59C3; --a-soz:#D63A7F; --a-mat:#138A8A; --a-kun:#8E44AD; --a-nat:#3E8E2F; --a-sel:#C98A00;
+  --f-display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161C; --surface:#1A2129; --ink:#E7ECF1; --muted:#9AA6B3; --line:#2C3641;
+  --accent:#86A8FF; --accent-soft:#22304D; --on-accent:#0E1520;
+  --ok:#5CCB8E; --ok-soft:#173226; --warn:#F0B04A; --warn-soft:#3A2C12; --bad:#F27D6E; --bad-soft:#3D1F1B; --off:#A0AAB6; --off-soft:#252D36;
+  --a-bew:#FF8A65; --a-spr:#86A8FF; --a-soz:#F57BB0; --a-mat:#4FC7C7; --a-kun:#C08AE0; --a-nat:#7BCB6A; --a-sel:#F0C04A;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161C; --surface:#1A2129; --ink:#E7ECF1; --muted:#9AA6B3; --line:#2C3641;
+  --accent:#86A8FF; --accent-soft:#22304D; --on-accent:#0E1520;
+  --ok:#5CCB8E; --ok-soft:#173226; --warn:#F0B04A; --warn-soft:#3A2C12; --bad:#F27D6E; --bad-soft:#3D1F1B; --off:#A0AAB6; --off-soft:#252D36;
+  --a-bew:#FF8A65; --a-spr:#86A8FF; --a-soz:#F57BB0; --a-mat:#4FC7C7; --a-kun:#C08AE0; --a-nat:#7BCB6A; --a-sel:#F0C04A;
+  color-scheme:dark}
+html,body{background:var(--bg);color:var(--ink);margin:0}
+*{-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{font-family:var(--f-body);font-size:16px;line-height:1.45;padding-top:env(safe-area-inset-top,0px)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:10px;padding-block:10px}
+h1{font-family:var(--f-display);font-size:1.45rem;margin:0;line-height:1;flex:1;letter-spacing:.2px}
+h1 span{color:var(--accent)}
+h2{font-family:var(--f-display);font-size:1.25rem;margin:0;text-wrap:balance}
+h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0}
+.pill{font-size:.75rem;padding:4px 10px;border-radius:99px;background:var(--off-soft);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}
+main{padding-block:16px 110px;display:flex;flex-direction:column;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.between{justify-content:space-between}
+.muted{color:var(--muted)}.small{font-size:.85rem}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);min-width:0}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;box-sizing:border-box;min-width:0}
+textarea{min-height:90px;resize:vertical}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;color:inherit;background:none}
+.btn{border-radius:10px;background:var(--accent);color:var(--on-accent);padding:10px 16px;font-weight:700}
+.btn.ghost{background:var(--accent-soft);color:var(--accent)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn-sm{padding:6px 12px;font-size:.85rem;background:var(--accent-soft);color:var(--accent);font-weight:700}
+.link{color:var(--accent);text-decoration:underline;padding:2px;font-size:.85rem}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--bg);padding:7px 12px;border-radius:99px;font-size:.9rem}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.area{--c:var(--muted);border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+.area::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:6px;vertical-align:1px}
+.area.on{background:var(--c);border-color:var(--c);color:var(--surface)}
+.area.on::before{background:var(--surface)}
+.tag{font-size:.75rem;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c);font-weight:700;white-space:nowrap}
+ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.kid-row{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px}
+.kid-row.st-da{border-left-color:var(--ok)}.kid-row.st-krank{border-left-color:var(--bad)}.kid-row.st-fehlt{border-left-color:var(--warn)}.kid-row.st-urlaub{border-left-color:var(--off)}
+.kid-name{font-weight:700;font-size:1.05rem}
+.kid-meta{font-size:.85rem;color:var(--muted)}
+.kid-info{font-size:.85rem;color:var(--bad)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--bg);border-radius:10px;padding:3px}
+.seg button{padding:8px 2px;font-size:.88rem;border-radius:8px;color:var(--muted)}
+.seg button.on{font-weight:700;color:var(--surface)}
+.seg button.on.s-da{background:var(--ok)}.seg button.on.s-fehlt{background:var(--warn)}.seg button.on.s-krank{background:var(--bad)}.seg button.on.s-urlaub{background:var(--off)}
+.times{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:.88rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.tally{display:flex;gap:6px;flex-wrap:wrap}
+.obs{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.obs:first-child{border-top:0;padding-top:0}
+.obs p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.date{font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--muted)}
+.gap-list{display:flex;flex-direction:column;gap:6px}
+.gap-item{display:flex;justify-content:space-between;gap:10px;font-size:.92rem}
+.gap-item b{font-variant-numeric:tabular-nums;color:var(--warn)}
+.area-block{display:flex;flex-direction:column;gap:6px;padding-left:12px;border-left:3px solid var(--c)}
+.area-block .empty{font-size:.88rem;color:var(--warn)}
+.week{display:grid;gap:10px}
+.preview{white-space:pre-wrap;background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:12px;font-size:.95rem;overflow-wrap:anywhere}
+.empty-state{text-align:center;padding:28px 16px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty-state p{margin:0;max-width:38ch;color:var(--muted)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding-block:6px}
+nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:.72rem;color:var(--muted);min-width:0}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button.on{color:var(--accent);font-weight:700}
+#lock{position:fixed;inset:0;z-index:20;background:var(--bg);overflow:auto}
+#lock .wrap{padding-block:max(40px,env(safe-area-inset-top,0px)) 40px;display:flex;flex-direction:column;gap:16px;max-width:460px}
+#lock h1{font-size:2rem;flex:none}
+.note{font-size:.88rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.err{color:var(--bad);font-size:.9rem;min-height:1.2em}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+@media (min-width:560px){.grid{grid-template-columns:repeat(4,1fr)}}
+.thumb{aspect-ratio:1;max-width:100%;border-radius:8px;overflow:hidden;background:var(--off-soft);padding:0;display:block;width:100%}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.viewer{position:fixed;inset:0;z-index:15;background:var(--bg);overflow:auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.viewer .wrap{display:flex;flex-direction:column;gap:12px;padding-block:12px}
+.viewer .big{width:100%;max-height:65vh;object-fit:contain;border-radius:10px;background:var(--off-soft);min-height:200px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:.9rem;z-index:30}
+@media (prefers-reduced-motion:no-preference){.kid-row,.chip,.seg button{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div class="wrap">
+    <h1>Kita<span>-</span>Helfer</h1>
+    <p class="muted" id="lock-msg">Verbinde …</p>
+    <form id="lock-form" hidden>
+      <div class="card">
+        <label class="f" id="email-wrap" hidden>E-Mail<input type="email" id="email" autocomplete="username" inputmode="email"></label>
+        <label class="f">Passwort<input type="password" id="pw1" autocomplete="current-password" minlength="8" required></label>
+        <label class="f" id="pw2-wrap" hidden>Passwort wiederholen<input type="password" id="pw2" autocomplete="new-password" minlength="8"></label>
+        <label class="row small"><input type="checkbox" id="remember" style="width:auto"> Auf diesem Gerät angemeldet bleiben</label>
+        <div class="err" id="lock-err"></div>
+        <button class="btn" id="lock-btn" type="submit">Entsperren</button>
+      </div>
+    </form>
+    <div class="note" id="lock-note" hidden></div>
+  </div>
+</div>
+
+<header><div class="wrap"><h1>Kita<span>-</span>Helfer</h1><span class="pill" id="sync">…</span><button class="btn-sm" id="lock-now" type="button">Sperren</button></div></header>
+<main class="wrap" id="main"></main>
+<nav class="tabs" aria-label="Bereiche"><div class="wrap" id="tabs"></div></nav>
+<div class="toast" id="toast" hidden></div>
+
+<script src="jszip.min.js"></script>
+<script src="platform.js"></script>
+<script src="config.js"></script>
+<script src="remote.js"></script>
+<script>
+const AREAS=[["bew","Körper & Bewegung"],["spr","Sprache"],["soz","Sozial-emotional"],["mat","Mathe & Forschen"],["kun","Kunst & Musik"],["nat","Natur & Umwelt"],["sel","Selbstständigkeit"]];
+const AREA_NAME=Object.fromEntries(AREAS);
+const STATUS=[["da","Da"],["fehlt","Fehlt"],["krank","Krank"],["urlaub","Urlaub"]];
+const TABS=[
+  ["heute","Heute",'<path d="M4 6h16M4 12h16M4 18h10"/><path d="M17 16l2 2 3-4"/>'],
+  ["beob","Beobachten",'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'],
+  ["gespraech","Gespräch",'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>'],
+  ["woche","Woche",'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'],
+  ["briefe","Briefe",'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'],
+  ["kinder","Kinder",'<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 14.5c3 0 6 2 6 5.5"/>']
+];
+const TEMPLATES={
+  ausflug:["Ausflug","Liebe Eltern,\n\nam {{Datum}} machen wir mit der Gruppe {{Gruppe}} einen Ausflug {{Ziel}}. Wir starten um {{Uhrzeit}} in der Kita und sind gegen {{Rückkehr}} zurück.\n\nBitte geben Sie Ihrem Kind wettergerechte Kleidung, feste Schuhe und {{Mitbringen}} mit.\n\nViele Grüße\n{{Name}}"],
+  laeuse:["Kopfläuse","Liebe Eltern,\n\nin der Gruppe {{Gruppe}} sind Kopfläuse aufgetreten. Bitte schauen Sie in den nächsten Tagen den Kopf Ihres Kindes gründlich durch, am besten mit einem Läusekamm.\n\nWenn Sie Läuse oder Nissen finden, geben Sie uns bitte Bescheid und behandeln Sie Ihr Kind vor dem nächsten Kita-Besuch. Die Behandlung sollte nach 8 bis 10 Tagen wiederholt werden.\n\nVielen Dank für Ihre Mithilfe!\n{{Name}}"],
+  krankheit:["Krankheit in der Gruppe","Liebe Eltern,\n\nin der Gruppe {{Gruppe}} ist {{Krankheit}} aufgetreten. Bitte achten Sie in den nächsten Tagen auf Anzeichen wie {{Anzeichen}}.\n\nWenn Ihr Kind Symptome zeigt, lassen Sie es bitte zu Hause und informieren Sie uns.\n\nViele Grüße\n{{Name}}"],
+  gespraech:["Einladung Entwicklungsgespräch","Liebe Familie {{Familienname}},\n\ngern möchte ich mit Ihnen über die Entwicklung von {{Kind}} sprechen. Ich schlage als Termin {{Termin}} vor. Das Gespräch dauert etwa {{Dauer}}.\n\nBitte geben Sie mir kurz Bescheid, ob der Termin passt.\n\nViele Grüße\n{{Name}}"],
+  wechsel:["Wechselkleidung","Liebe Eltern,\n\nbitte füllen Sie die Wechselkleidung Ihres Kindes wieder auf. Es fehlt: {{Was fehlt}}.\n\nVielen Dank!\n{{Name}}"]
+};
+const WEEKDAYS=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LS={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
+const uid=()=>Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,"0")).join("");
+function isoLocal(d){const x=new Date(d);x.setMinutes(x.getMinutes()-x.getTimezoneOffset());return x.toISOString().slice(0,10)}
+const today=()=>isoLocal(new Date());
+const nowHM=()=>new Date().toTimeString().slice(0,5);
+const parseD=iso=>new Date(iso+"T12:00:00");
+const fmtD=(iso,o={weekday:"short",day:"2-digit",month:"2-digit"})=>parseD(iso).toLocaleDateString("de-DE",o);
+const addDays=(iso,n)=>{const d=parseD(iso);d.setDate(d.getDate()+n);return isoLocal(d)};
+const monday=iso=>{const d=parseD(iso);const wd=(d.getDay()+6)%7;return addDays(iso,-wd)};
+function kw(iso){const d=parseD(iso);d.setDate(d.getDate()+3-((d.getDay()+6)%7));const y=new Date(d.getFullYear(),0,4);return 1+Math.round(((d-y)/864e5-3+((y.getDay()+6)%7))/7)}
+const daysBetween=(a,b)=>Math.round((parseD(b)-parseD(a))/864e5);
+function age(geb,at){if(!geb)return "";const [y,m]=geb.split("-").map(Number);const d=parseD(at);let mo=(d.getFullYear()-y)*12+(d.getMonth()+1-m);if(mo<0)return "";return `${Math.floor(mo/12)} J. ${mo%12} Mon.`}
+function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2200)}
+async function copy(text){try{await navigator.clipboard.writeText(text);toast("Kopiert")}catch{const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("Kopiert")}catch{toast("Bitte Text markieren und kopieren")}ta.remove()}}
+
+/* ---------- crypto: AES-GCM with a key derived from her password ---------- */
+const TE=new TextEncoder(),TD=new TextDecoder();
+const b64=u=>{let s="";new Uint8Array(u).forEach(b=>s+=String.fromCharCode(b));return btoa(s)};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function deriveKey(pw,salt,iter){const base=await crypto.subtle.importKey("raw",TE.encode(pw),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:iter,hash:"SHA-256"},base,{name:"AES-GCM",length:256},true,["encrypt","decrypt"])}
+async function encryptObj(o,key=KEY){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,TE.encode(JSON.stringify(o)));return {iv:b64(iv),ct:b64(ct)}}
+async function decryptObj(b,key=KEY){const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(b.iv)},key,unb64(b.ct));return JSON.parse(TD.decode(pt))}
+
+/* ---------- store: each section is one encrypted document ---------- */
+let KEY=null,COL=null,META=null,unsub=null,DL=null,ASSETS=null;
+const DOCS={},dirty=new Set(),ver={},timers={},chains={},seenTs={};
+function D(name,init){if(!DOCS[name])DOCS[name]=init();return DOCS[name]}
+function cacheIdx(){try{return JSON.parse(LS.get("kh:idx")||"[]")}catch{return []}}
+function cachePut(name,body){LS.set("kh:c:"+name,JSON.stringify(body));const i=cacheIdx();if(!i.includes(name)){i.push(name);LS.set("kh:idx",JSON.stringify(i))}}
+function touch(name){dirty.add(name);ver[name]=(ver[name]||0)+1;clearTimeout(timers[name]);timers[name]=setTimeout(()=>flush(name),700);setSync("saving")}
+async function flush(name){
+  const v=ver[name];const body=await encryptObj(DOCS[name]);body.ts=Date.now();seenTs[name]=body.ts;cachePut(name,body);
+  if(!COL){if(ver[name]===v)dirty.delete(name);setSync();return}
+  chains[name]=(chains[name]||Promise.resolve()).then(()=>COL.doc(name).set(body)).then(()=>{if(ver[name]===v)dirty.delete(name);setSync()},e=>{console.warn(e);setSync(e&&e.code==="quota_exceeded"?"full":"offline")});
+}
+let syncState="";
+function setSync(s){
+  if(s===undefined)s=dirty.size?"saving":(window.platform.hasRemote()?window.platform.status():"local");
+  if(s==="ok"&&!window.platform.hasRemote())s="local";
+  syncState=s;const el=$("#sync");
+  const m={ok:["ok","Synchronisiert"],saving:["","Speichert …"],offline:["warn","Offline, lokal gespeichert"],local:["","Nur auf diesem Gerät"],full:["bad","Speicher voll"]}[s]||["",""];
+  el.className="pill "+m[0];el.textContent=m[1];
+}
+window.addEventListener("online",()=>{dirty.forEach(n=>flush(n))});
+
+/* ---------- unlock ---------- */
+async function boot(){
+  let db=null,user=null;
+  if(window.platform&&window.platform.use){[db,user]=await Promise.all([window.platform.use("db").catch(()=>null),window.platform.use("user").catch(()=>null)]);try{DL=await window.platform.use("downloads")}catch{DL=null}try{ASSETS=await window.platform.use("assets")}catch{ASSETS=null}}
+  const id=user?await user.id():null;
+  let cloudMeta=null,cloudErr=false;
+  if(!(db&&id))ASSETS=null;
+  if(window.KH_SYNC&&!window.KH_SYNC.loggedIn()&&db&&id){COL=db.collection("data/users/"+id);return showLogin()}
+  if(db&&id){COL=db.collection("data/users/"+id);try{const m=await COL.doc("meta").get();if(m.exists)cloudMeta=m.data()}catch(e){cloudErr=true}}
+  let localMeta=null;try{localMeta=JSON.parse(LS.get("kh:meta")||"null")}catch{}
+  META=cloudMeta||localMeta;
+  if(COL&&!cloudMeta&&localMeta&&!cloudErr){try{await COL.doc("meta").set(localMeta)}catch{}}
+  const msg=$("#lock-msg"),note=$("#lock-note");
+  if(!META&&cloudErr){msg.textContent="Keine Verbindung zum Speicher. Bitte später noch einmal öffnen.";return}
+  const remembered=LS.get("kh:key");
+  if(META&&remembered){try{const k=await crypto.subtle.importKey("raw",unb64(remembered),"AES-GCM",true,["encrypt","decrypt"]);await decryptObj(META.check,k);KEY=k;return start()}catch{LS.del("kh:key")}}
+  $("#lock-form").hidden=false;note.hidden=false;
+  if(META){msg.textContent="Bitte gib dein Passwort ein, um deine Gruppe zu öffnen.";$("#lock-btn").textContent="Entsperren";
+    note.textContent="Deine Daten sind mit diesem Passwort verschlüsselt. Ohne das richtige Passwort kann niemand sie lesen.";}
+  else{msg.textContent="Willkommen! Lege ein Passwort fest. Damit werden alle Einträge verschlüsselt, bevor sie dein Gerät verlassen.";
+    $("#pw2-wrap").hidden=false;$("#pw1").autocomplete="new-password";$("#lock-btn").textContent="Passwort festlegen";
+    note.innerHTML="<b>Wichtig:</b> Schreib dir das Passwort an einem sicheren Ort auf. Es lässt sich nicht zurücksetzen, und ohne es sind die Daten verloren."+(window.platform.hasRemote()?" Am Laptop öffnest du dieselbe Adresse und gibst dasselbe Passwort ein.":" Die Daten bleiben auf diesem Gerät.");}
+  setTimeout(()=>$("#pw1").focus(),50);
+}
+let LOGIN=false;
+function showLogin(){
+  LOGIN=true;$("#lock-form").hidden=false;$("#email-wrap").hidden=false;$("#email").value=window.KH_SYNC.email();
+  $("#lock-msg").textContent="Melde dich mit deiner E-Mail und deinem Passwort an. Beim allerersten Mal wird dabei dein Konto eingerichtet.";
+  $("#lock-btn").textContent="Anmelden";const note=$("#lock-note");note.hidden=false;
+  note.innerHTML="Alles wird mit deinem Passwort verschlüsselt, bevor es dein Gerät verlässt. <b>Schreib dir das Passwort an einem sicheren Ort auf.</b> Es lässt sich nicht zurücksetzen, und ohne es sind die Daten verloren.";
+  setTimeout(()=>($("#email").value?$("#pw1"):$("#email")).focus(),50);
+}
+async function doLogin(pw,err){
+  const SY=window.KH_SYNC,email=$("#email").value.trim().toLowerCase();
+  if(!/^\S+@\S+\.\S+$/.test(email)){err.textContent="Bitte gib deine E-Mail-Adresse ein.";return false}
+  const setup=!$("#pw2-wrap").hidden;let r;
+  if(!setup){r=await SY.login(email,pw);
+    if(r==="invalid"){$("#pw2-wrap").hidden=false;$("#lock-btn").textContent="Konto einrichten";
+      err.textContent="Mit dieser E-Mail und diesem Passwort gibt es noch kein Konto. Richtest du die App zum ersten Mal ein? Dann wiederhole das Passwort. Sonst prüfe deine Eingabe.";return false}}
+  else{if(pw!==$("#pw2").value){err.textContent="Die beiden Passwörter sind nicht gleich.";return false}
+    r=await SY.signup(email,pw);
+    if(r==="exists"){$("#pw2-wrap").hidden=true;$("#pw2").value="";$("#lock-btn").textContent="Anmelden";err.textContent="Für diese E-Mail gibt es schon ein Konto, aber das Passwort stimmt nicht.";return false}}
+  if(r!=="ok"){err.textContent={offline:"Keine Internetverbindung. Für die erste Anmeldung braucht die App Internet.",confirm:"Supabase verlangt noch eine E-Mail-Bestätigung. Bitte in Supabase „Confirm email“ ausschalten (siehe Anleitung).",closed:"Neue Konten sind gesperrt. Bitte prüfe E-Mail und Passwort."}[r]||"Die Anmeldung hat nicht geklappt. Bitte später noch einmal versuchen.";return false}
+  LOGIN=false;
+  try{const m=await COL.doc("meta").get();META=m.exists?m.data():null}catch{err.textContent="Keine Verbindung zum Speicher. Bitte später noch einmal versuchen.";return false}
+  return true;
+}
+$("#lock-form").addEventListener("submit",async e=>{
+  e.preventDefault();const err=$("#lock-err");err.textContent="";const pw=$("#pw1").value;
+  if(pw.length<8){err.textContent="Das Passwort braucht mindestens 8 Zeichen.";return}
+  $("#lock-btn").disabled=true;
+  try{
+    if(LOGIN&&!(await doLogin(pw,err)))return;
+    if(META){const k=await deriveKey(pw,unb64(META.salt),META.iter);try{await decryptObj(META.check,k)}catch{err.textContent="Das Passwort stimmt nicht.";return}KEY=k;LS.set("kh:meta",JSON.stringify(META))}
+    else{if(!$("#pw2-wrap").hidden&&pw!==$("#pw2").value){err.textContent="Die beiden Passwörter sind nicht gleich.";return}
+      const salt=crypto.getRandomValues(new Uint8Array(16)),iter=310000;KEY=await deriveKey(pw,salt,iter);
+      META={salt:b64(salt),iter,check:await encryptObj({v:"kita-helfer"},KEY)};LS.set("kh:meta",JSON.stringify(META));
+      if(COL){try{await COL.doc("meta").set(META)}catch(e){err.textContent="Konnte nicht speichern. Bitte Verbindung prüfen.";KEY=null;META=null;return}}}
+    if($("#remember").checked)LS.set("kh:key",b64(await crypto.subtle.exportKey("raw",KEY)));
+    $("#pw1").value="";$("#pw2").value="";start();
+  }finally{$("#lock-btn").disabled=false}
+});
+$("#lock-now").addEventListener("click",()=>{LS.del("kh:key");location.reload()});
+
+async function start(){
+  $("#lock").hidden=true;
+  for(const n of cacheIdx()){try{const b=JSON.parse(LS.get("kh:c:"+n));DOCS[n]=await decryptObj(b);seenTs[n]=b.ts}catch{}}
+  setSync();render();
+  window.platform.onStatus(()=>{if(!dirty.size)setSync()});window.platform.startSync();
+  if(COL){unsub=COL.onSnapshot(async snap=>{
+    let changed=false;
+    const ids=new Set(snap.docs.map(d=>d.id));
+    for(const n in DOCS)if(!ids.has(n)&&!dirty.has(n)&&seenTs[n]){delete DOCS[n];changed=true}
+    for(const d of snap.docs){if(d.id==="meta"||dirty.has(d.id))continue;const b=d.data();if(!b||!b.ct||seenTs[d.id]===b.ts)continue;
+      try{DOCS[d.id]=await decryptObj(b);seenTs[d.id]=b.ts;cachePut(d.id,b);changed=true}catch{}}
+    if(!dirty.size)setSync();
+    if(changed)safeRender();
+  },e=>{console.warn(e);setSync("offline")})}
+}
+
+/* ---------- data access ---------- */
+const kinderDoc=()=>D("kinder",()=>({list:[]}));
+const kids=()=>kinderDoc().list.slice().sort((a,b)=>a.name.localeCompare(b.name,"de"));
+const kidById=id=>kinderDoc().list.find(k=>k.id===id);
+const attDoc=day=>D("att-"+day.slice(0,7),()=>({days:{}}));
+const obsDocName=iso=>"obs-"+iso.slice(0,4);
+function allObs(){const out=[];for(const n in DOCS)if(n.startsWith("obs-"))for(const o of DOCS[n].items||[])out.push(Object.assign({doc:n},o));return out.sort((a,b)=>b.date.localeCompare(a.date)||(b.t||0)-(a.t||0))}
+const planDoc=()=>D("plan",()=>({weeks:{}}));
+const briefeDoc=()=>D("briefe",()=>({tpl:{},vals:{}}));
+const fotoDoc=kid=>D("fotos-"+kid,()=>({items:[]}));
+const fotos=kid=>((DOCS["fotos-"+kid]||{}).items||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)||b.t-a.t);
+async function dropDoc(name){delete DOCS[name];dirty.delete(name);clearTimeout(timers[name]);LS.del("kh:c:"+name);LS.set("kh:idx",JSON.stringify(cacheIdx().filter(n=>n!==name)));if(COL){try{await COL.doc(name).delete()}catch{}}}
+
+/* ---------- photos: resized in the browser, encrypted, stored as opaque files ---------- */
+const urlCache={};let hydrating=0;const hydrateQ=[];
+function loadImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const i=new Image();i.onload=()=>{res(i)};i.onerror=()=>rej(new Error("Bild nicht lesbar"));i.src=u})}
+async function shrink(file,max,q){
+  let src;try{src=await createImageBitmap(file,{imageOrientation:"from-image"})}catch{src=await loadImage(file)}
+  const w=src.width,h=src.height,s=Math.min(1,max/Math.max(w,h));const c=document.createElement("canvas");c.width=Math.round(w*s);c.height=Math.round(h*s);
+  c.getContext("2d").drawImage(src,0,0,c.width,c.height);return new Promise(r=>c.toBlob(r,"image/jpeg",q));
+}
+async function uploadEncrypted(blob){
+  const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},KEY,await blob.arrayBuffer());
+  const r=await ASSETS.upload(new Blob([JSON.stringify({v:1,iv:b64(iv),ct:b64(ct)})],{type:"application/json"}),{type:"application/json"});return r.id;
+}
+async function photoBlob(asset){
+  const j=JSON.parse(await window.platform.blobText(asset));
+  return new Blob([await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(j.iv)},KEY,unb64(j.ct))],{type:"image/jpeg"});
+}
+async function photoURL(asset){if(!urlCache[asset])urlCache[asset]=photoBlob(asset).then(b=>URL.createObjectURL(b));return urlCache[asset]}
+function hydrate(){document.querySelectorAll("img[data-asset]:not([src])").forEach(img=>hydrateQ.push(img));pump()}
+function pump(){while(hydrating<4&&hydrateQ.length){const img=hydrateQ.shift();hydrating++;photoURL(img.dataset.asset).then(u=>{img.src=u},()=>{delete urlCache[img.dataset.asset];img.alt="Foto nicht verfügbar"}).finally(()=>{hydrating--;pump()})}}
+async function addPhotos(kid,files){
+  const st=$("#up-state");let ok=0;
+  for(let i=0;i<files.length;i++){
+    if(st)st.textContent=`Lade Foto ${i+1} von ${files.length} hoch …`;
+    try{const f=files[i];const [full,thumb]=await Promise.all([shrink(f,1800,.85),shrink(f,360,.72)]);
+      const asset=await uploadEncrypted(full),th=await uploadEncrypted(thumb);
+      const d=f.lastModified?isoLocal(new Date(f.lastModified)):today();
+      fotoDoc(kid).items.push({id:uid(),asset,thumb:th,date:d,caption:"",t:Date.now()});touch("fotos-"+kid);ok++;
+    }catch(e){console.warn(e);toast(e&&e.code==="quota_or_state"?"Der Fotospeicher ist voll.":"Ein Foto konnte nicht hochgeladen werden.");if(e&&e.code==="quota_or_state")break}
+  }
+  if(ok)toast(ok===1?"Foto gespeichert":ok+" Fotos gespeichert");ui.usage=null;render();
+}
+async function deletePhoto(kid,pid){const d=fotoDoc(kid);const p=d.items.find(x=>x.id===pid);if(!p)return;d.items=d.items.filter(x=>x.id!==pid);touch("fotos-"+kid);
+  for(const a of [p.asset,p.thumb]){try{await ASSETS.delete(a)}catch(e){console.warn(e)}}}
+async function farewellZip(kid){
+  const k=kidById(kid);const list=fotos(kid).slice().reverse();const st=$("#up-state");
+  if(!window.JSZip){toast("Das Packen der Mappe ist gerade nicht verfügbar");return}
+  const zip=new JSZip();const safe=k.name.replace(/[^\wäöüÄÖÜß -]/g,"").trim()||"Kind";
+  for(let i=0;i<list.length;i++){if(st)st.textContent=`Packe Foto ${i+1} von ${list.length} …`;
+    try{zip.file(`Fotos/${list[i].date}_${String(i+1).padStart(3,"0")}.jpg`,await photoBlob(list[i].asset))}catch{}}
+  zip.file("Fotos/Bildunterschriften.txt",list.map((p,i)=>`${p.date}_${String(i+1).padStart(3,"0")}.jpg  ${p.caption||""}`).join("\n"));
+  const obs=allObs().filter(o=>o.kid===kid).reverse();
+  zip.file("Beobachtungen.txt",`Beobachtungen ${k.name}\n\n`+AREAS.map(([a,n])=>{const l=obs.filter(o=>(o.areas||[]).includes(a));return l.length?`${n}\n${l.map(o=>`- ${fmtD(o.date,{day:"2-digit",month:"2-digit",year:"numeric"})}: ${o.text}`).join("\n")}\n`:""}).filter(Boolean).join("\n"));
+  const blob=await zip.generateAsync({type:"blob"});if(st)st.textContent="";
+  try{await DL.save({filename:`Abschied-${safe}.zip`,data:blob});toast("Abschiedsmappe gespeichert")}catch(e){if(!e||e.code!=="declined")toast("Speichern hat nicht geklappt")}
+}
+
+/* ---------- UI state & rendering ---------- */
+const ui={tab:"heute",day:today(),obsKid:"",obsAreas:[],obsText:"",obsDate:today(),filterKid:"",editKid:null,gsKid:"",gsRange:"6",week:monday(today()),tpl:"ausflug",confirm:null,album:null,photo:null,usage:null};
+try{const t=LS.get("kh:tab");if(t&&TABS.some(x=>x[0]===t))ui.tab=t}catch{}
+let pendingRender=false;
+function safeRender(){const a=document.activeElement;if(a&&$("#main").contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){pendingRender=true;return}render()}
+$("#main").addEventListener("focusout",()=>{if(pendingRender){pendingRender=false;setTimeout(safeRender,0)}});
+function render(){
+  $("#tabs").innerHTML=TABS.map(([k,l,svg])=>`<button type="button" data-tab="${k}" class="${ui.tab===k?"on":""}" aria-current="${ui.tab===k?"page":"false"}"><svg viewBox="0 0 24 24" aria-hidden="true">${svg}</svg>${l}</button>`).join("");
+  $("#main").innerHTML=VIEWS[ui.tab]()+(ui.photo?viewerHTML():"");
+  document.body.style.overflow=ui.photo?"hidden":"";
+  hydrate();
+}
+function viewerHTML(){
+  const p=fotos(ui.album).find(x=>x.id===ui.photo);if(!p){ui.photo=null;return ""}
+  return `<div class="viewer" role="dialog" aria-label="Foto"><div class="wrap">
+    <div class="row between"><span class="date">${esc(fmtD(p.date,{day:"2-digit",month:"long",year:"numeric"}))}</span><button class="btn-sm" data-act="closePhoto">Schließen</button></div>
+    <img class="big" data-asset="${p.asset}" alt="${esc(p.caption||"Foto")}">
+    <label class="f">Bildunterschrift<input id="ph-cap" data-bind="caption" value="${esc(p.caption)}" placeholder="z. B. Erster Tag im Wald"></label>
+    <div class="row">${DL?`<button class="btn ghost" data-act="savePhoto">Auf Gerät speichern</button>`:""}${delBtn("photo:"+p.id,"Foto löschen")}</div>
+  </div></div>`;
+}
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(!b)return;ui.tab=b.dataset.tab;ui.confirm=null;LS.set("kh:tab",ui.tab);render();window.scrollTo(0,0)});
+
+const emptyKids=()=>`<div class="card empty-state"><h2>Noch keine Kinder angelegt</h2><p>Lege zuerst die Kinder deiner Gruppe an. Vorname oder Kürzel reicht, Nachnamen braucht die App nicht.</p><button class="btn" data-act="goto" data-tab="kinder">Kinder anlegen</button></div>`;
+const kidOptions=(sel,blank)=>`<option value="">${blank}</option>`+kids().map(k=>`<option value="${k.id}" ${sel===k.id?"selected":""}>${esc(k.name)}</option>`).join("");
+const areaTag=a=>`<span class="tag" style="--c:var(--a-${a})">${esc(AREA_NAME[a]||a)}</span>`;
+const delBtn=(key,label="Löschen")=>ui.confirm===key?`<button class="btn-sm" style="background:var(--bad);color:var(--surface)" data-act="del" data-key="${key}">Wirklich löschen?</button>`:`<button class="link" data-act="ask" data-key="${key}">${label}</button>`;
+
+const VIEWS={
+heute(){
+  const ks=kids();if(!ks.length)return emptyKids();
+  const A=(DOCS["att-"+ui.day.slice(0,7)]||{days:{}}).days[ui.day]||{};
+  const c={da:0,fehlt:0,krank:0,urlaub:0,offen:0};ks.forEach(k=>{const s=(A[k.id]||{}).s;c[s||"offen"]++});
+  const still=ks.filter(k=>(A[k.id]||{}).s==="da"&&!A[k.id].ab).length;
+  return `<div class="row between"><div><h2>${ui.day===today()?"Heute":"Anwesenheit"}, ${esc(fmtD(ui.day,{weekday:"long",day:"numeric",month:"long"}))}</h2><div class="small muted">${c.da} da · ${still} noch in der Kita · ${c.krank} krank · ${c.fehlt+c.urlaub} fehlen · ${c.offen} offen</div></div>
+  <input type="date" id="day" data-chg="day" value="${ui.day}" style="width:auto"></div>
+  <ul class="list">${ks.map(k=>{const r=A[k.id]||{};return `<li class="kid-row st-${r.s||"offen"}">
+    <div><div class="kid-name">${esc(k.name)}</div><div class="kid-meta">${[age(k.geb,ui.day),k.abholer?"Abholung: "+esc(k.abholer):""].filter(Boolean).join(" · ")}</div>${k.info?`<div class="kid-info">${esc(k.info)}</div>`:""}</div>
+    <div class="seg" role="group" aria-label="Status ${esc(k.name)}">${STATUS.map(([s,l])=>`<button type="button" class="s-${s} ${r.s===s?"on":""}" data-act="st" data-kid="${k.id}" data-s="${s}">${l}</button>`).join("")}</div>
+    ${r.s==="da"?`<div class="times"><span>gebracht ${r.an||"–"}</span>${r.ab?`<span>abgeholt ${r.ab}</span><button class="link" data-act="ab" data-kid="${k.id}">rückgängig</button>`:`<button class="btn-sm" data-act="ab" data-kid="${k.id}">Abgeholt</button>`}</div>`:""}
+  </li>`}).join("")}</ul>`;
+},
+beob(){
+  const ks=kids();if(!ks.length)return emptyKids();
+  const obs=allObs();const last={};obs.forEach(o=>{if(!last[o.kid])last[o.kid]=o.date});
+  const gaps=ks.map(k=>({k,d:last[k.id]?daysBetween(last[k.id],today()):null})).filter(x=>x.d===null||x.d>=14).sort((a,b)=>(b.d??1e9)-(a.d??1e9)).slice(0,6);
+  const shown=obs.filter(o=>!ui.filterKid||o.kid===ui.filterKid).slice(0,40);
+  return `<form class="card" id="obs-form"><h2>Neue Beobachtung</h2>
+    <div class="chips" role="group" aria-label="Kind">${ks.map(k=>`<button type="button" class="chip ${ui.obsKid===k.id?"on":""}" data-act="obsKid" data-kid="${k.id}">${esc(k.name)}</button>`).join("")}</div>
+    <h3>Bildungsbereich</h3>
+    <div class="chips">${AREAS.map(([a,n])=>`<button type="button" class="chip area ${ui.obsAreas.includes(a)?"on":""}" style="--c:var(--a-${a})" data-act="obsArea" data-a="${a}">${n}</button>`).join("")}</div>
+    <label class="f">Was hast du beobachtet?<textarea id="obs-text" data-bind="obsText" placeholder="z. B. Hat heute zum ersten Mal allein die Schuhe zugebunden und es stolz den anderen gezeigt.">${esc(ui.obsText)}</textarea></label>
+    <div class="row between"><input type="date" id="obs-date" data-bind="obsDate" value="${ui.obsDate}" style="width:auto"><button class="btn" type="submit">Speichern</button></div>
+    <div class="err" id="obs-err"></div></form>
+  ${gaps.length?`<div class="card"><h3>Länger nicht beobachtet</h3><div class="gap-list">${gaps.map(g=>`<div class="gap-item"><span>${esc(g.k.name)}</span><b>${g.d===null?"noch nie":"seit "+g.d+" Tagen"}</b></div>`).join("")}</div></div>`:""}
+  <div class="card"><div class="row between"><h2>Beobachtungen</h2><select id="filter-kid" data-chg="filterKid" style="width:auto">${kidOptions(ui.filterKid,"Alle Kinder")}</select></div>
+  ${shown.length?shown.map(o=>`<div class="obs"><div class="row between"><b>${esc((kidById(o.kid)||{name:"Gelöschtes Kind"}).name)}</b><span class="date">${esc(fmtD(o.date,{day:"2-digit",month:"2-digit",year:"numeric"}))}</span></div>
+    ${o.areas&&o.areas.length?`<div class="chips">${o.areas.map(areaTag).join("")}</div>`:""}<p>${esc(o.text)}</p><div>${delBtn("obs:"+o.doc+":"+o.id)}</div></div>`).join(""):`<p class="muted">Noch keine Beobachtungen. Die erste kannst du oben in wenigen Sekunden festhalten.</p>`}</div>`;
+},
+gespraech(){
+  const ks=kids();if(!ks.length)return emptyKids();
+  const k=kidById(ui.gsKid);
+  let body="";
+  if(k){
+    const from=ui.gsRange==="all"?"0000":addDays(today(),-Math.round(+ui.gsRange*30.4));
+    const obs=allObs().filter(o=>o.kid===k.id&&o.date>=from);
+    const gs=k.gs||{};
+    body=`<div class="card"><div><h2>${esc(k.name)}</h2><div class="small muted">${[age(k.geb,today()),obs.length+(obs.length===1?" Beobachtung":" Beobachtungen")+" im Zeitraum"].filter(Boolean).join(" · ")}</div></div>
+    ${AREAS.map(([a,n])=>{const list=obs.filter(o=>(o.areas||[]).includes(a));return `<div class="area-block" style="--c:var(--a-${a})"><b>${n}</b>${list.length?list.map(o=>`<div class="small"><span class="date">${esc(fmtD(o.date,{day:"2-digit",month:"2-digit",year:"2-digit"}))}</span> ${esc(o.text)}</div>`).join(""):`<span class="empty">Noch keine Beobachtung in diesem Bereich</span>`}</div>`}).join("")}
+    ${(()=>{const none=obs.filter(o=>!(o.areas||[]).length);return none.length?`<div class="area-block" style="--c:var(--muted)"><b>Ohne Bereich</b>${none.map(o=>`<div class="small"><span class="date">${esc(fmtD(o.date,{day:"2-digit",month:"2-digit",year:"2-digit"}))}</span> ${esc(o.text)}</div>`).join("")}</div>`:""})()}
+    </div>
+    <div class="card"><h2>Notizen fürs Gespräch</h2>
+      <label class="f">Stärken und Freude<textarea id="gs-st" data-bind="gs" data-f="staerken">${esc(gs.staerken)}</textarea></label>
+      <label class="f">Nächste Entwicklungsschritte<textarea id="gs-zi" data-bind="gs" data-f="ziele">${esc(gs.ziele)}</textarea></label>
+      <label class="f">Absprachen mit den Eltern<textarea id="gs-ab" data-bind="gs" data-f="absprachen">${esc(gs.absprachen)}</textarea></label>
+      <button class="btn ghost" type="button" data-act="copyGs">Als Text kopieren</button></div>`;
+  }
+  return `<div class="card"><h2>Entwicklungsgespräch vorbereiten</h2><p class="small muted" style="margin:0">Hier siehst du alle Beobachtungen eines Kindes nach Bildungsbereichen sortiert. Leere Bereiche zeigen, wo du noch genauer hinschauen kannst.</p>
+  <div class="row"><select id="gs-kid" data-chg="gsKid" style="flex:2 1 160px">${kidOptions(ui.gsKid,"Kind auswählen")}</select>
+  <select id="gs-range" data-chg="gsRange" style="flex:1 1 120px">${[["6","Letzte 6 Monate"],["12","Letzte 12 Monate"],["all","Alle"]].map(([v,l])=>`<option value="${v}" ${ui.gsRange===v?"selected":""}>${l}</option>`).join("")}</select></div></div>${body}`;
+},
+woche(){
+  const w=planDoc().weeks[ui.week]||{thema:"",days:["","","","",""]};
+  return `<div class="card"><div class="row between"><button class="btn-sm" data-act="wk" data-d="-7" aria-label="Vorige Woche">‹</button>
+    <div style="text-align:center"><h2>KW ${kw(ui.week)}</h2><div class="small muted">${esc(fmtD(ui.week,{day:"2-digit",month:"2-digit"}))} bis ${esc(fmtD(addDays(ui.week,4),{day:"2-digit",month:"2-digit",year:"numeric"}))}</div></div>
+    <button class="btn-sm" data-act="wk" data-d="7" aria-label="Nächste Woche">›</button></div>
+    <label class="f">Thema der Woche<input id="wk-thema" data-bind="wkThema" value="${esc(w.thema)}" placeholder="z. B. Herbst im Wald"></label></div>
+  <div class="week">${WEEKDAYS.map((d,i)=>`<label class="card f"><b style="color:var(--ink)">${d}, ${esc(fmtD(addDays(ui.week,i),{day:"2-digit",month:"2-digit"}))}</b><textarea id="wk-${i}" data-bind="wkDay" data-i="${i}" placeholder="Angebote, Ausflüge, Besonderes">${esc(w.days[i])}</textarea></label>`).join("")}</div>
+  <button class="btn ghost" data-act="copyWeek">Wochenplan als Text kopieren</button>`;
+},
+briefe(){
+  const B=briefeDoc();const text=B.tpl[ui.tpl]??TEMPLATES[ui.tpl][1];
+  const keys=[...new Set([...text.matchAll(/\{\{([^}]+)\}\}/g)].map(m=>m[1]))];
+  return `<div class="card"><h2>Elternbrief</h2><select id="tpl" data-chg="tpl">${Object.entries(TEMPLATES).map(([k,[n]])=>`<option value="${k}" ${ui.tpl===k?"selected":""}>${n}</option>`).join("")}</select>
+    ${keys.map((k,i)=>`<label class="f">${esc(k)}<input id="ph-${i}" data-bind="ph" data-k="${esc(k)}" value="${esc(B.vals[k]||"")}"></label>`).join("")}</div>
+  <div class="card"><div class="row between"><h3>Vorschau</h3><button class="btn" data-act="copyLetter">Kopieren</button></div><div class="preview" id="preview">${esc(fillTpl(text,B.vals))}</div></div>
+  <details class="card"><summary>Vorlage bearbeiten</summary><textarea id="tpl-text" data-bind="tplText" style="min-height:220px">${esc(text)}</textarea>
+  <p class="small muted" style="margin:0">Platzhalter in doppelten geschweiften Klammern, z. B. {{Datum}}, werden oben zu Eingabefeldern.</p>${B.tpl[ui.tpl]!=null?`<button class="link" data-act="resetTpl">Vorlage zurücksetzen</button>`:""}</details>`;
+},
+kinder(){
+  const ks=kids();
+  const form=k=>`<form class="card" id="kid-form" data-id="${k.id||""}"><h2>${k.id?"Kind bearbeiten":"Kind hinzufügen"}</h2>
+    <label class="f">Vorname oder Kürzel<input id="k-name" required value="${esc(k.name)}" placeholder="z. B. Mia S."></label>
+    <label class="f">Geburtsmonat<input id="k-geb" type="month" value="${esc(k.geb)}"></label>
+    <label class="f">Abholberechtigt<input id="k-ab" value="${esc(k.abholer)}" placeholder="z. B. Mama, Papa, Oma Rita"></label>
+    <label class="f">Wichtige Hinweise<input id="k-info" value="${esc(k.info)}" placeholder="z. B. Allergie: Nüsse"></label>
+    <div class="row"><button class="btn" type="submit">Speichern</button><button class="btn ghost" type="button" data-act="cancelKid">Abbrechen</button></div>
+    ${k.id?`<div>${delBtn("kid:"+k.id,"Kind und alle Einträge löschen")}</div>`:""}</form>`;
+  if(ui.editKid)return form(ui.editKid==="new"?{}:kidById(ui.editKid)||{});
+  if(ui.album&&kidById(ui.album))return album(kidById(ui.album));
+  return `<div class="row between"><h2>Kinder (${ks.length})</h2><button class="btn" data-act="newKid">Kind hinzufügen</button></div>
+  ${ks.length?`<ul class="list">${ks.map(k=>`<li class="kid-row"><div class="row between"><div><div class="kid-name">${esc(k.name)}</div><div class="kid-meta">${[age(k.geb,today()),k.abholer?"Abholung: "+esc(k.abholer):""].filter(Boolean).join(" · ")}</div>${k.info?`<div class="kid-info">${esc(k.info)}</div>`:""}</div><div class="row"><button class="btn-sm" data-act="album" data-kid="${k.id}">Fotos${fotos(k.id).length?" ("+fotos(k.id).length+")":""}</button><button class="btn-sm" data-act="editKid" data-kid="${k.id}">Bearbeiten</button></div></div></li>`).join("")}</ul>`
+  :`<div class="card empty-state"><p>Noch keine Kinder. Lege sie einzeln an oder probiere die App erst mit drei Beispielkindern aus, die du später wieder löschst.</p><button class="btn ghost" data-act="demo">Beispielkinder anlegen</button></div>`}
+  <div class="card"><h3>Sicherung</h3><p class="small muted" style="margin:0">Die Sicherung ist verschlüsselt und lässt sich nur mit deinem Passwort wieder einlesen.</p>
+  <div class="row">${DL?`<button class="btn ghost" data-act="export">Sicherung speichern</button>`:""}<label class="btn ghost" style="display:inline-block">Sicherung einlesen<input type="file" id="import" accept="application/json,.json" data-chg="import" hidden></label></div></div>`;
+}
+};
+function album(k){
+  const list=fotos(k.id);
+  if(ASSETS&&ui.usage===null){ui.usage="…";ASSETS.list().then(r=>{ui.usage=r.usage;if(ui.album)safeRender()}).catch(()=>{ui.usage=undefined})}
+  const u=ui.usage&&ui.usage.maxBytes?`<p class="small muted" style="margin:0">Speicher auf diesem Gerät: ${(ui.usage.bytes/1048576).toFixed(0)} MB belegt</p>`:"";
+  return `<div class="row between"><button class="btn-sm" data-act="closeAlbum">‹ Kinder</button><h2 style="flex:1">${esc(k.name)}</h2><span class="small muted">${list.length} ${list.length===1?"Foto":"Fotos"}</span></div>
+  ${ASSETS?`<div class="card"><label class="btn" style="text-align:center">Fotos hinzufügen<input type="file" id="up-files" accept="image/*" multiple data-chg="upload" hidden></label>
+    <div class="small muted" id="up-state" aria-live="polite"></div>
+    <p class="small muted" style="margin:0">Die Fotos werden verkleinert und verschlüsselt gespeichert. Lösch sie danach am besten aus der Galerie deines Handys.</p>${u}</div>`
+  :""}
+  ${list.length?`<div class="grid">${list.map(p=>`<button class="thumb" data-act="openPhoto" data-id="${p.id}" aria-label="${esc(p.caption||"Foto vom "+fmtD(p.date,{day:"2-digit",month:"2-digit",year:"numeric"}))}"><img data-asset="${p.thumb}" alt=""></button>`).join("")}</div>
+    <div class="card"><h3>Abschied</h3><p class="small muted" style="margin:0">Lädt alle Fotos von ${esc(k.name)} mit Bildunterschriften und alle Beobachtungen als ZIP-Datei herunter, zum Beispiel für ein Abschiedsbuch.</p>
+    ${DL?`<button class="btn ghost" data-act="farewell">Abschiedsmappe herunterladen</button>`:""}</div>`
+  :`<div class="card empty-state"><p>Noch keine Fotos von ${esc(k.name)}. Über das ganze Jahr gesammelt, ergeben sie am Ende die Abschiedsmappe.</p></div>`}`;
+}
+function fillTpl(t,vals){return t.replace(/\{\{([^}]+)\}\}/g,(m,k)=>vals[k]?vals[k]:"["+k+"]")}
+
+/* ---------- actions ---------- */
+const ACT={
+  goto:t=>{ui.tab=t.dataset.tab;LS.set("kh:tab",ui.tab);render()},
+  st:t=>{const day=attDoc(ui.day).days[ui.day]||(attDoc(ui.day).days[ui.day]={});const r=day[t.dataset.kid]||(day[t.dataset.kid]={});
+    if(r.s===t.dataset.s){delete day[t.dataset.kid]}else{r.s=t.dataset.s;if(r.s==="da"){if(!r.an&&ui.day===today())r.an=nowHM()}else{delete r.an;delete r.ab}}
+    touch("att-"+ui.day.slice(0,7));render()},
+  ab:t=>{const r=attDoc(ui.day).days[ui.day][t.dataset.kid];if(r.ab)delete r.ab;else r.ab=ui.day===today()?nowHM():"–";touch("att-"+ui.day.slice(0,7));render()},
+  obsKid:t=>{ui.obsKid=ui.obsKid===t.dataset.kid?"":t.dataset.kid;render()},
+  obsArea:t=>{const a=t.dataset.a;ui.obsAreas=ui.obsAreas.includes(a)?ui.obsAreas.filter(x=>x!==a):[...ui.obsAreas,a];render()},
+  ask:t=>{ui.confirm=t.dataset.key;render()},
+  del:t=>{const p=t.dataset.key.split(":");ui.confirm=null;
+    if(p[0]==="obs"){const d=DOCS[p[1]];d.items=d.items.filter(o=>o.id!==p[2]);touch(p[1]);toast("Beobachtung gelöscht")}
+    if(p[0]==="photo"){deletePhoto(ui.album,p[1]);ui.photo=null;toast("Foto gelöscht")}
+    if(p[0]==="kid"){const id=p[1];
+      if(DOCS["fotos-"+id]){const items=DOCS["fotos-"+id].items||[];dropDoc("fotos-"+id);if(ASSETS)(async()=>{for(const x of items)for(const a of [x.asset,x.thumb]){try{await ASSETS.delete(a)}catch{}}})()}
+      kinderDoc().list=kinderDoc().list.filter(k=>k.id!==id);touch("kinder");
+      for(const n in DOCS){if(n.startsWith("obs-")){const before=DOCS[n].items.length;DOCS[n].items=DOCS[n].items.filter(o=>o.kid!==id);if(DOCS[n].items.length!==before)touch(n)}
+        if(n.startsWith("att-")){let ch=false;for(const d in DOCS[n].days)if(DOCS[n].days[d][id]){delete DOCS[n].days[d][id];ch=true}if(ch)touch(n)}}
+      ui.editKid=null;toast("Kind und alle Einträge gelöscht")}
+    render()},
+  newKid:()=>{ui.editKid="new";render()},
+  album:t=>{ui.album=t.dataset.kid;ui.usage=null;ui.confirm=null;render();window.scrollTo(0,0)},
+  closeAlbum:()=>{ui.album=null;ui.photo=null;render()},
+  openPhoto:t=>{ui.photo=t.dataset.id;ui.confirm=null;render()},
+  closePhoto:()=>{ui.photo=null;ui.confirm=null;render()},
+  savePhoto:async()=>{const p=fotos(ui.album).find(x=>x.id===ui.photo);if(!p)return;try{await DL.save({filename:`${p.date}-foto.jpg`,data:await photoBlob(p.asset)});toast("Foto gespeichert")}catch(e){if(!e||e.code!=="declined")toast("Speichern hat nicht geklappt")}},
+  farewell:t=>{t.disabled=true;farewellZip(ui.album).finally(()=>{t.disabled=false})},
+  editKid:t=>{ui.editKid=t.dataset.kid;ui.confirm=null;render()},
+  cancelKid:()=>{ui.editKid=null;render()},
+  demo:()=>{const L=kinderDoc().list;[["Beispiel Mia","2021-04","Mama, Papa",""],["Beispiel Ben","2022-01","Papa, Oma Rita","Allergie: Nüsse"],["Beispiel Leyla","2020-09","Mama",""]].forEach(([name,geb,abholer,info])=>L.push({id:uid(),name,geb,abholer,info}));touch("kinder");render()},
+  wk:t=>{ui.week=addDays(ui.week,+t.dataset.d);render()},
+  copyWeek:()=>{const w=planDoc().weeks[ui.week]||{thema:"",days:[]};copy(`Wochenplan KW ${kw(ui.week)}${w.thema?" – "+w.thema:""}\n\n`+WEEKDAYS.map((d,i)=>`${d}, ${fmtD(addDays(ui.week,i),{day:"2-digit",month:"2-digit"})}\n${w.days[i]||"–"}`).join("\n\n"))},
+  copyLetter:()=>{const B=briefeDoc();copy(fillTpl(B.tpl[ui.tpl]??TEMPLATES[ui.tpl][1],B.vals))},
+  resetTpl:()=>{delete briefeDoc().tpl[ui.tpl];touch("briefe");render()},
+  copyGs:()=>{const k=kidById(ui.gsKid);if(!k)return;const gs=k.gs||{};const from=ui.gsRange==="all"?"0000":addDays(today(),-Math.round(+ui.gsRange*30.4));
+    const obs=allObs().filter(o=>o.kid===k.id&&o.date>=from);
+    let t=`Entwicklungsgespräch ${k.name}${k.geb?" ("+age(k.geb,today())+")":""}\n\n`;
+    AREAS.forEach(([a,n])=>{const l=obs.filter(o=>(o.areas||[]).includes(a));t+=`${n}\n${l.length?l.map(o=>`- ${fmtD(o.date,{day:"2-digit",month:"2-digit",year:"2-digit"})}: ${o.text}`).join("\n"):"- noch keine Beobachtung"}\n\n`});
+    t+=`Stärken und Freude\n${gs.staerken||"–"}\n\nNächste Entwicklungsschritte\n${gs.ziele||"–"}\n\nAbsprachen mit den Eltern\n${gs.absprachen||"–"}`;copy(t)},
+  export:async()=>{const out={app:"kita-helfer",v:1,meta:META,docs:{}};for(const n in DOCS){const b=await encryptObj(DOCS[n]);out.docs[n]=b}
+    try{await DL.save({filename:`kita-helfer-sicherung-${today()}.json`,data:JSON.stringify(out)});toast("Sicherung gespeichert")}catch(e){if(e&&e.code!=="declined")toast("Speichern hat nicht geklappt")}}
+};
+const BIND={
+  obsText:t=>ui.obsText=t.value,
+  obsDate:t=>ui.obsDate=t.value||today(),
+  gs:t=>{const k=kidById(ui.gsKid);if(!k)return;k.gs=k.gs||{};k.gs[t.dataset.f]=t.value;touch("kinder")},
+  wkThema:t=>{const w=planDoc().weeks[ui.week]||(planDoc().weeks[ui.week]={thema:"",days:["","","","",""]});w.thema=t.value;touch("plan")},
+  wkDay:t=>{const w=planDoc().weeks[ui.week]||(planDoc().weeks[ui.week]={thema:"",days:["","","","",""]});w.days[+t.dataset.i]=t.value;touch("plan")},
+  ph:t=>{briefeDoc().vals[t.dataset.k]=t.value;touch("briefe");const B=briefeDoc();$("#preview").textContent=fillTpl(B.tpl[ui.tpl]??TEMPLATES[ui.tpl][1],B.vals)},
+  caption:t=>{const p=fotoDoc(ui.album).items.find(x=>x.id===ui.photo);if(p){p.caption=t.value;touch("fotos-"+ui.album)}},
+  tplText:t=>{briefeDoc().tpl[ui.tpl]=t.value;touch("briefe");$("#preview").textContent=fillTpl(t.value,briefeDoc().vals)}
+};
+const CHG={
+  day:t=>{ui.day=t.value||today();render()},
+  filterKid:t=>{ui.filterKid=t.value;render()},
+  gsKid:t=>{ui.gsKid=t.value;render()},
+  gsRange:t=>{ui.gsRange=t.value;render()},
+  tpl:t=>{ui.tpl=t.value;render()},
+  tplText:()=>render(),
+  upload:t=>{const files=[...t.files];if(files.length&&ui.album)addPhotos(ui.album,files)},
+  import:async t=>{const f=t.files[0];if(!f)return;try{const j=JSON.parse(await f.text());
+    if(j.app!=="kita-helfer"||!j.meta||j.meta.salt!==META.salt)throw new Error("andere Gruppe");
+    for(const n in j.docs){DOCS[n]=await decryptObj(j.docs[n]);touch(n)}toast("Sicherung eingelesen");render()}
+    catch{toast("Diese Datei passt nicht zu deinem Passwort")}}
+};
+const main=$("#main");
+main.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(t&&ACT[t.dataset.act]){e.preventDefault();ACT[t.dataset.act](t)}});
+main.addEventListener("input",e=>{const t=e.target;if(t.dataset.bind&&BIND[t.dataset.bind])BIND[t.dataset.bind](t)});
+main.addEventListener("change",e=>{const t=e.target;if(t.dataset.chg&&CHG[t.dataset.chg])CHG[t.dataset.chg](t);else if(t.dataset.bind==="tplText")render()});
+main.addEventListener("submit",e=>{e.preventDefault();
+  if(e.target.id==="obs-form"){const err=$("#obs-err");
+    if(!ui.obsKid){err.textContent="Bitte wähle oben ein Kind aus.";return}
+    if(!ui.obsText.trim()){err.textContent="Bitte schreib kurz auf, was du beobachtet hast.";return}
+    const n=obsDocName(ui.obsDate);D(n,()=>({items:[]})).items.push({id:uid(),kid:ui.obsKid,date:ui.obsDate,areas:ui.obsAreas.slice(),text:ui.obsText.trim(),t:Date.now()});touch(n);
+    ui.obsText="";ui.obsAreas=[];ui.obsDate=today();toast("Beobachtung gespeichert");render()}
+  if(e.target.id==="kid-form"){const id=e.target.dataset.id;const v={name:$("#k-name").value.trim(),geb:$("#k-geb").value,abholer:$("#k-ab").value.trim(),info:$("#k-info").value.trim()};if(!v.name)return;
+    if(id)Object.assign(kidById(id),v);else kinderDoc().list.push(Object.assign({id:uid()},v));touch("kinder");ui.editKid=null;render()}
+});
+boot();
+if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>

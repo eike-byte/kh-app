@@ -1,0 +1,17 @@
+{
+  "name": "Kita-Helfer",
+  "short_name": "Kita-Helfer",
+  "description": "Anwesenheit, Beobachtungen, Entwicklungsgespräche, Wochenplan, Elternbriefe und Fotos für den Kita-Alltag.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F2F5F8",
+  "theme_color": "#2B59C3",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
